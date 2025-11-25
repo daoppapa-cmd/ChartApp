@@ -32,19 +32,15 @@
         .message-bubble {
             transition: all 0.2s;
         }
-        .message-bubble:active {
-            transform: scale(0.98);
-        }
     </style>
 </head>
-<body class="bg-gray-100">
-    <div id="root"></div>
+<body class="bg-gray-100 h-screen overflow-hidden">
+    <div id="root" class="h-full"></div>
 
-    <!-- Firebase Configuration & Setup (REALTIME DATABASE VERSION) -->
+    <!-- Firebase Configuration & Setup -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-        // Import Realtime Database functions instead of Firestore
-        import { getDatabase, ref, push, set, onValue, update, remove, get } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
+        import { getDatabase, ref, push, set, onValue, update, remove, get, child, query, orderByChild, equalTo } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
 
         window.fb = {
             initializeApp,
@@ -55,7 +51,11 @@
             onValue,
             update,
             remove,
-            get
+            get,
+            child,
+            query,
+            orderByChild,
+            equalTo
         };
 
         window.dispatchEvent(new Event('firebase-ready'));
@@ -65,111 +65,58 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- Icons Components ---
-        const SendIcon = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-        );
+        // --- Icons ---
+        const SendIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>);
+        const Loader2Icon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>);
+        const SearchIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>);
+        const ArrowLeftIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>);
+        const CopyIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>);
+        const UserIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>);
+        const EditIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>);
+        const TrashIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>);
+        const XIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>);
+        const CheckIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"></polyline></svg>);
 
-        const MessageSquareIcon = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
-        );
-
-        const Loader2Icon = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-            </svg>
-        );
-
-        const LockIcon = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
-        );
-
-        const EditIcon = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-        );
-
-        const TrashIcon = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-        );
-
-        const XIcon = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-        );
-
-        const CheckIcon = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-        );
-
-        // --- Main App Component ---
         function App() {
             const [firebaseReady, setFirebaseReady] = useState(false);
+            const [view, setView] = useState('loading'); // loading, login, home, chat
+            const [currentUser, setCurrentUser] = useState(null);
+            
+            // Home/Search State
+            const [searchQuery, setSearchQuery] = useState('');
+            const [searchResult, setSearchResult] = useState(null);
+            const [searchError, setSearchError] = useState('');
+            
+            // Chat State
+            const [activeChat, setActiveChat] = useState(null); // { partnerId, partnerName, chatId }
             const [messages, setMessages] = useState([]);
             const [inputText, setInputText] = useState('');
-            const [loading, setLoading] = useState(true);
-            const [checkingProfile, setCheckingProfile] = useState(true);
-            const [username, setUsername] = useState('');
-            const [isNameSet, setIsNameSet] = useState(false);
-            const [isLocked, setIsLocked] = useState(false);
-            
-            // User Identity State (Custom, not Firebase Auth)
-            const [userId, setUserId] = useState(null);
-
-            // New States for Update/Delete
-            const [selectedMessage, setSelectedMessage] = useState(null);
             const [editingMessageId, setEditingMessageId] = useState(null);
-            
-            const messagesEndRef = useRef(null);
+
             const appRef = useRef(null);
-            const dbRef = useRef(null); // Realtime DB Ref
+            const dbRef = useRef(null);
+            const messagesEndRef = useRef(null);
             const inputRef = useRef(null);
 
-            // 1. Initialize Firebase & Custom Identity
+            // 1. Initialize Firebase
             useEffect(() => {
                 const initFirebase = () => {
                     if (window.fb) {
                         try {
                             const getFirebaseConfig = () => {
-                                // Default fallback config
                                 let config = {
                                     apiKey: "AIzaSyCPTS4NN_cbPggJBfDveLzBzr6nA5ziVpw",
                                     authDomain: "chartapp-e99be.firebaseapp.com",
                                     projectId: "chartapp-e99be",
-                                    // *** IMPORTANT: DATABASE URL IS REQUIRED FOR REALTIME DATABASE ***
-                                    databaseURL: "https://chartapp-e99be-default-rtdb.firebaseio.com/" 
+                                    databaseURL: "https://chartapp-e99be-default-rtdb.firebaseio.com/"
                                 };
-
-                                // Try to use system config if available (for preview environment)
                                 try {
                                     if (typeof window.__firebase_config !== 'undefined') {
                                         const sysConfig = JSON.parse(window.__firebase_config);
-                                        // System config usually lacks databaseURL, so we merge carefully
                                         config = { ...config, ...sysConfig };
-                                        if (!config.databaseURL) {
-                                            // Fallback if system config doesn't have it
-                                             config.databaseURL = "https://chartapp-e99be-default-rtdb.firebaseio.com/";
-                                        }
+                                        if (!config.databaseURL) config.databaseURL = "https://chartapp-e99be-default-rtdb.firebaseio.com/";
                                     }
-                                } catch (e) { console.error(e); }
-                                
+                                } catch (e) { }
                                 return config;
                             };
 
@@ -180,16 +127,6 @@
                             appRef.current = app;
                             dbRef.current = db;
                             setFirebaseReady(true);
-
-                            // --- Custom Identity Logic (No Firebase Auth) ---
-                            let localUid = localStorage.getItem('chat_app_uid');
-                            if (!localUid) {
-                                // Generate a simple random ID if none exists
-                                localUid = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                                localStorage.setItem('chat_app_uid', localUid);
-                            }
-                            setUserId(localUid);
-
                         } catch (err) {
                             console.error("Firebase init failed:", err);
                         }
@@ -201,358 +138,381 @@
                 return () => window.removeEventListener('firebase-ready', initFirebase);
             }, []);
 
-            // 2. Check User Profile (Realtime DB)
-            useEffect(() => {
-                if (!firebaseReady || !userId) return;
-
-                const checkProfile = async () => {
-                    setCheckingProfile(true);
-                    try {
-                        const db = dbRef.current;
-                        const userRef = window.fb.ref(db, 'users/' + userId);
-                        const snapshot = await window.fb.get(userRef);
-
-                        if (snapshot.exists()) {
-                            const userData = snapshot.val();
-                            if (userData.username) {
-                                setUsername(userData.username);
-                                setIsNameSet(true);
-                                setIsLocked(true);
-                            }
-                        }
-                    } catch (error) {
-                        console.error("Error checking profile:", error);
-                    } finally {
-                        setCheckingProfile(false);
-                        setLoading(false);
-                    }
-                };
-
-                checkProfile();
-            }, [firebaseReady, userId]);
-
-            // 3. Message Listener (Realtime DB)
+            // 2. Check Auth Status
             useEffect(() => {
                 if (!firebaseReady) return;
 
+                const checkAuth = async () => {
+                    const localUid = localStorage.getItem('chat_app_uid');
+                    if (localUid) {
+                        // Validate user exists
+                        const db = dbRef.current;
+                        try {
+                            const userSnapshot = await window.fb.get(window.fb.ref(db, `users/${localUid}`));
+                            if (userSnapshot.exists()) {
+                                setCurrentUser({ uid: localUid, ...userSnapshot.val() });
+                                setView('home');
+                            } else {
+                                localStorage.removeItem('chat_app_uid'); // Invalid UID
+                                setView('login');
+                            }
+                        } catch (e) {
+                            console.error("Auth check failed", e);
+                            setView('login');
+                        }
+                    } else {
+                        setView('login');
+                    }
+                };
+                checkAuth();
+            }, [firebaseReady]);
+
+            // 3. Login / Create Account
+            const handleRegister = async (name) => {
+                if (!name.trim()) return;
+                
                 const db = dbRef.current;
-                const messagesRef = window.fb.ref(db, 'messages');
+                const newUid = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                
+                // Generate @username: @Dara_829
+                const cleanName = name.replace(/\s+/g, '').substring(0, 10);
+                const randomSuffix = Math.floor(100 + Math.random() * 900);
+                const newUsername = `@${cleanName}_${randomSuffix}`;
+
+                const userData = {
+                    username: name,
+                    tag: newUsername,
+                    createdAt: Date.now()
+                };
+
+                try {
+                    // Save User
+                    await window.fb.set(window.fb.ref(db, `users/${newUid}`), userData);
+                    // Index Username for search
+                    await window.fb.set(window.fb.ref(db, `usernames/${newUsername}`), newUid);
+
+                    localStorage.setItem('chat_app_uid', newUid);
+                    setCurrentUser({ uid: newUid, ...userData });
+                    setView('home');
+                } catch (e) {
+                    alert("បរាជ័យក្នុងការបង្កើតគណនី។ សូមព្យាយាមម្តងទៀត។");
+                }
+            };
+
+            // 4. Search User
+            const handleSearch = async (e) => {
+                e.preventDefault();
+                setSearchResult(null);
+                setSearchError('');
+                
+                if (!searchQuery.startsWith('@')) {
+                    setSearchError("ឈ្មោះសម្គាល់ត្រូវចាប់ផ្តើមដោយ @");
+                    return;
+                }
+
+                const db = dbRef.current;
+                try {
+                    const snapshot = await window.fb.get(window.fb.ref(db, `usernames/${searchQuery}`));
+                    if (snapshot.exists()) {
+                        const partnerUid = snapshot.val();
+                        if (partnerUid === currentUser.uid) {
+                            setSearchError("នេះជាគណនីរបស់អ្នក!");
+                            return;
+                        }
+
+                        // Fetch partner details
+                        const partnerSnapshot = await window.fb.get(window.fb.ref(db, `users/${partnerUid}`));
+                        if (partnerSnapshot.exists()) {
+                            setSearchResult({ uid: partnerUid, ...partnerSnapshot.val() });
+                        }
+                    } else {
+                        setSearchError("រកមិនឃើញអ្នកប្រើប្រាស់នេះទេ។");
+                    }
+                } catch (e) {
+                    setSearchError("មានបញ្ហាក្នុងការស្វែងរក។");
+                }
+            };
+
+            // 5. Start Chat
+            const startChat = (partner) => {
+                // Chat ID is unique combination of two UIDs (sorted)
+                const uids = [currentUser.uid, partner.uid].sort();
+                const chatId = `${uids[0]}_${uids[1]}`;
+                
+                setActiveChat({
+                    chatId: chatId,
+                    partnerId: partner.uid,
+                    partnerName: partner.username,
+                    partnerTag: partner.tag
+                });
+                setView('chat');
+                setSearchResult(null);
+                setSearchQuery('');
+            };
+
+            // 6. Chat Logic (Listener)
+            useEffect(() => {
+                if (view !== 'chat' || !activeChat || !firebaseReady) return;
+
+                const db = dbRef.current;
+                const messagesRef = window.fb.ref(db, `messages/${activeChat.chatId}`);
 
                 const unsubscribe = window.fb.onValue(messagesRef, (snapshot) => {
                     const data = snapshot.val();
-                    const loadedMessages = [];
+                    const msgs = [];
                     if (data) {
                         Object.keys(data).forEach(key => {
-                            loadedMessages.push({
-                                id: key,
-                                ...data[key]
-                            });
+                            msgs.push({ id: key, ...data[key] });
                         });
                     }
-
-                    // Sort by timestamp
-                    loadedMessages.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-                    setMessages(loadedMessages);
-                    setLoading(false); // Ensure loading is off once data loads
-                }, (error) => {
-                    console.error("Data fetch error:", error);
-                    setLoading(false);
+                    msgs.sort((a, b) => a.createdAt - b.createdAt);
+                    setMessages(msgs);
                 });
 
-                // In Realtime DB SDK, unsubscribe is returned differently or handled by 'off'
-                // But onValue returns an unsubscribe function in modular SDK
                 return () => unsubscribe();
-            }, [firebaseReady]);
+            }, [view, activeChat, firebaseReady]);
 
             useEffect(() => {
-                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-            }, [messages]);
+                if(view === 'chat') messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, [messages, view]);
 
-            // 4. Save Name (Realtime DB)
-            const handleNameSubmit = async (e) => {
-                e.preventDefault();
-                if (!username.trim() || !userId) return;
-
-                setLoading(true);
-                try {
-                    const db = dbRef.current;
-                    const userRef = window.fb.ref(db, 'users/' + userId);
-                    
-                    await window.fb.set(userRef, {
-                        username: username.trim(),
-                        createdAt: Date.now(),
-                        deviceId: navigator.userAgent
-                    });
-
-                    setIsNameSet(true);
-                    setIsLocked(true);
-                } catch (error) {
-                    console.error("Error saving profile:", error);
-                    alert("មានបញ្ហាក្នុងការរក្សាទុកឈ្មោះ។ សូមពិនិត្យមើល Database Rules។");
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            // --- Handlers for Update/Delete ---
-
-            const handleMessageClick = (msg) => {
-                // Check if the message belongs to the current device user
-                if (msg.uid === userId) {
-                    setSelectedMessage(msg);
-                }
-            };
-
-            const handleEditAction = () => {
-                if (selectedMessage) {
-                    setEditingMessageId(selectedMessage.id);
-                    setInputText(selectedMessage.text);
-                    setSelectedMessage(null);
-                    setTimeout(() => inputRef.current?.focus(), 100);
-                }
-            };
-
-            const handleDeleteAction = async () => {
-                if (selectedMessage) {
-                    const confirmDelete = window.confirm("តើអ្នកពិតជាចង់លុបសារនេះមែនទេ?");
-                    if (confirmDelete) {
-                        try {
-                            const db = dbRef.current;
-                            const msgRef = window.fb.ref(db, 'messages/' + selectedMessage.id);
-                            await window.fb.remove(msgRef);
-                            
-                            if (editingMessageId === selectedMessage.id) {
-                                setEditingMessageId(null);
-                                setInputText('');
-                            }
-                        } catch (error) {
-                            console.error("Error deleting message:", error);
-                            alert("បរាជ័យក្នុងការលុបសារ");
-                        }
-                    }
-                    setSelectedMessage(null);
-                }
-            };
-
-            const cancelEdit = () => {
-                setEditingMessageId(null);
-                setInputText('');
-                setSelectedMessage(null);
-            };
-
-            // 5. Send or Update Message (Realtime DB)
+            // 7. Send/Update Message
             const handleSendMessage = async (e) => {
                 e.preventDefault();
-                if (!inputText.trim() || !userId) return;
-
-                const textToSend = inputText;
-                setInputText('');
+                if (!inputText.trim() || !activeChat) return;
                 
-                const isUpdate = !!editingMessageId;
-                if (isUpdate) setEditingMessageId(null);
+                const text = inputText;
+                setInputText('');
+                const db = dbRef.current;
 
                 try {
-                    const db = dbRef.current;
-                    
-                    if (isUpdate) {
-                        // Update
-                        const msgRef = window.fb.ref(db, 'messages/' + editingMessageId);
-                        await window.fb.update(msgRef, {
-                            text: textToSend,
+                    if (editingMessageId) {
+                        await window.fb.update(window.fb.ref(db, `messages/${activeChat.chatId}/${editingMessageId}`), {
+                            text: text,
                             updatedAt: Date.now()
                         });
+                        setEditingMessageId(null);
                     } else {
-                        // Create New
-                        const messagesRef = window.fb.ref(db, 'messages');
-                        await window.fb.push(messagesRef, {
-                            text: textToSend,
-                            uid: userId, // Use local ID
-                            senderName: username,
-                            createdAt: Date.now(),
-                            type: 'text'
+                        await window.fb.push(window.fb.ref(db, `messages/${activeChat.chatId}`), {
+                            text: text,
+                            senderId: currentUser.uid,
+                            createdAt: Date.now()
                         });
                     }
-                } catch (error) {
-                    console.error("Error sending/updating message:", error);
-                    setInputText(textToSend);
-                    if (isUpdate) setEditingMessageId(editingMessageId);
+                } catch (e) {
+                    console.error(e);
+                    setInputText(text); // revert on fail
                 }
             };
 
-            if (loading || !firebaseReady || checkingProfile) {
+            const handleDeleteMessage = async (msgId) => {
+                if(window.confirm("លុបសារនេះ?")) {
+                    const db = dbRef.current;
+                    await window.fb.remove(window.fb.ref(db, `messages/${activeChat.chatId}/${msgId}`));
+                    if(editingMessageId === msgId) {
+                        setEditingMessageId(null);
+                        setInputText('');
+                    }
+                }
+            };
+
+            const handleEditMessage = (msg) => {
+                setEditingMessageId(msg.id);
+                setInputText(msg.text);
+                inputRef.current?.focus();
+            };
+
+            const copyToClipboard = (text) => {
+                navigator.clipboard.writeText(text);
+                alert("បានចម្លង: " + text);
+            };
+
+            // --- Views ---
+
+            if (view === 'loading') {
                 return (
-                    <div className="flex items-center justify-center h-screen bg-gray-100">
-                        <div className="text-center">
-                            <Loader2Icon className="w-10 h-10 animate-spin text-blue-500 mx-auto mb-2" />
-                            <p className="text-gray-600 font-battambang">កំពុងដំណើរការ...</p>
+                    <div className="flex items-center justify-center h-full">
+                        <Loader2Icon className="animate-spin text-blue-500 w-10 h-10" />
+                    </div>
+                );
+            }
+
+            if (view === 'login') {
+                return <LoginView onRegister={handleRegister} />;
+            }
+
+            if (view === 'home') {
+                return (
+                    <div className="flex flex-col h-full bg-gray-50 max-w-md mx-auto shadow-2xl overflow-hidden">
+                        {/* Header */}
+                        <div className="bg-blue-600 p-6 text-white rounded-b-3xl shadow-md z-10">
+                            <h1 className="text-2xl font-bold mb-1">កម្មវិធីជជែកកម្សាន្ត</h1>
+                            <div className="flex items-center gap-2 opacity-90 text-sm bg-blue-700 p-2 rounded-lg inline-block pr-4">
+                                <UserIcon className="w-4 h-4" />
+                                <span>{currentUser.username}</span>
+                                <span className="font-mono bg-blue-800 px-2 py-0.5 rounded text-xs cursor-pointer" onClick={() => copyToClipboard(currentUser.tag)}>
+                                    {currentUser.tag}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Search Area */}
+                        <div className="p-6">
+                            <p className="text-gray-600 mb-2 text-sm font-bold">ស្វែងរកដៃគូជជែក (បញ្ចូល @username)</p>
+                            <form onSubmit={handleSearch} className="flex gap-2 mb-4">
+                                <div className="relative flex-1">
+                                    <input 
+                                        type="text" 
+                                        placeholder="@username..." 
+                                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                    <SearchIcon className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                                </div>
+                                <button type="submit" className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 shadow-md transition">
+                                    <SearchIcon className="w-6 h-6" />
+                                </button>
+                            </form>
+
+                            {searchError && <p className="text-red-500 text-sm mb-4 bg-red-50 p-2 rounded text-center">{searchError}</p>}
+
+                            {searchResult && (
+                                <div className="bg-white p-4 rounded-xl shadow-md border border-blue-100 flex items-center justify-between animate-fade-in">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                                            {searchResult.username[0]}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-gray-800">{searchResult.username}</p>
+                                            <p className="text-xs text-gray-500">{searchResult.tag}</p>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => startChat(searchResult)}
+                                        className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-green-600 transition"
+                                    >
+                                        ជជែក
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Placeholder for Recent Chats (Could be implemented with user_chats index) */}
+                        <div className="flex-1 px-6 overflow-y-auto">
+                            <div className="text-center mt-10 text-gray-400">
+                                <p>វាយបញ្ចូល @username របស់មិត្តភក្តិ<br/>ដើម្បីចាប់ផ្តើមការសន្ទនាថ្មី។</p>
+                            </div>
                         </div>
                     </div>
                 );
             }
 
-            if (!isNameSet) {
+            if (view === 'chat') {
                 return (
-                    <div className="flex items-center justify-center h-screen bg-gray-100 p-4 font-battambang">
-                        <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
-                            <div className="text-center mb-6">
-                                <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <MessageSquareIcon className="w-8 h-8 text-blue-600" />
-                                </div>
-                                <h1 className="text-2xl font-bold text-gray-800">ស្វាគមន៍មកកាន់ កម្មវិធីជជែកកម្សាន្ត</h1>
-                                <p className="text-gray-500 mt-2">សូមដាក់ឈ្មោះរបស់អ្នកដើម្បីចាប់ផ្តើម។<br/><span className="text-xs text-red-500">(ឈ្មោះនេះនឹងជាប់ជាមួយឧបករណ៍នេះជារៀងរហូត)</span></p>
+                    <div className="flex flex-col h-full bg-gray-100 font-battambang max-w-md mx-auto shadow-2xl relative">
+                        {/* Chat Header */}
+                        <div className="bg-white p-4 shadow-sm flex items-center gap-3 z-20">
+                            <button onClick={() => { setView('home'); setMessages([]); setActiveChat(null); }} className="text-gray-600 hover:bg-gray-100 p-2 rounded-full">
+                                <ArrowLeftIcon className="w-6 h-6" />
+                            </button>
+                            <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                {activeChat.partnerName[0]}
                             </div>
-                            
-                            <form onSubmit={handleNameSubmit} className="space-y-4">
-                                <div>
-                                    <input
-                                        type="text"
-                                        value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
-                                        placeholder="ឈ្មោះរបស់អ្នក..."
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                                        autoFocus
-                                    />
+                            <div>
+                                <h2 className="font-bold text-gray-800">{activeChat.partnerName}</h2>
+                                <p className="text-xs text-gray-500">{activeChat.partnerTag}</p>
+                            </div>
+                        </div>
+
+                        {/* Messages */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-100">
+                            {messages.map((msg) => {
+                                const isMe = msg.senderId === currentUser.uid;
+                                return (
+                                    <div key={msg.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} group`}>
+                                        <div className={`flex items-center gap-2 max-w-[85%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                                            {/* Actions for Me */}
+                                            {isMe && (
+                                                <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => handleEditMessage(msg)} className="text-gray-400 hover:text-blue-500"><EditIcon className="w-4 h-4"/></button>
+                                                    <button onClick={() => handleDeleteMessage(msg.id)} className="text-gray-400 hover:text-red-500"><TrashIcon className="w-4 h-4"/></button>
+                                                </div>
+                                            )}
+                                            
+                                            <div 
+                                                className={`px-4 py-2 rounded-2xl break-words shadow-sm text-sm ${
+                                                    isMe 
+                                                        ? 'bg-blue-600 text-white rounded-tr-none' 
+                                                        : 'bg-white text-gray-800 rounded-tl-none'
+                                                } ${editingMessageId === msg.id ? 'ring-2 ring-yellow-400' : ''}`}
+                                            >
+                                                {msg.text}
+                                                {msg.updatedAt && <span className="text-[10px] opacity-70 block text-right italic mt-1">បានកែ</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            <div ref={messagesEndRef} />
+                        </div>
+
+                        {/* Input */}
+                        <div className="bg-white p-3 border-t">
+                            {editingMessageId && (
+                                <div className="flex justify-between items-center bg-yellow-50 px-3 py-1 mb-2 rounded text-xs text-yellow-700">
+                                    <span>កំពុងកែប្រែសារ...</span>
+                                    <button onClick={() => { setEditingMessageId(null); setInputText(''); }}><XIcon className="w-4 h-4" /></button>
                                 </div>
-                                <button
-                                    type="submit"
-                                    disabled={!username.trim()}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    ចូលជជែក
+                            )}
+                            <form onSubmit={handleSendMessage} className="flex gap-2">
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    value={inputText}
+                                    onChange={(e) => setInputText(e.target.value)}
+                                    placeholder="សរសេរសារ..."
+                                    className="flex-1 px-4 py-3 bg-gray-100 rounded-full focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition"
+                                />
+                                <button disabled={!inputText.trim()} type="submit" className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 transition shadow-lg">
+                                    {editingMessageId ? <CheckIcon className="w-5 h-5"/> : <SendIcon className="w-5 h-5"/>}
                                 </button>
                             </form>
                         </div>
                     </div>
                 );
             }
+            return null;
+        }
 
+        // --- Sub-Components ---
+
+        function LoginView({ onRegister }) {
+            const [name, setName] = useState('');
             return (
-                <div className="flex flex-col h-screen bg-gray-100 font-battambang relative">
-                    
-                    {/* Action Modal */}
-                    {selectedMessage && (
-                        <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center p-4" onClick={() => setSelectedMessage(null)}>
-                            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100" onClick={e => e.stopPropagation()}>
-                                <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
-                                    <h3 className="font-bold text-gray-700">ជម្រើស</h3>
-                                    <button onClick={() => setSelectedMessage(null)} className="text-gray-400 hover:text-gray-600">
-                                        <XIcon className="w-5 h-5" />
-                                    </button>
-                                </div>
-                                <div className="p-4">
-                                    <p className="text-sm text-gray-500 mb-4 bg-gray-100 p-3 rounded-lg italic border-l-4 border-blue-500">
-                                        "{selectedMessage.text.length > 50 ? selectedMessage.text.substring(0, 50) + '...' : selectedMessage.text}"
-                                    </p>
-                                    <div className="space-y-2">
-                                        <button 
-                                            onClick={handleEditAction}
-                                            className="w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-700 py-3 rounded-lg hover:bg-blue-100 transition font-bold"
-                                        >
-                                            <EditIcon className="w-5 h-5" /> កែប្រែ
-                                        </button>
-                                        <button 
-                                            onClick={handleDeleteAction}
-                                            className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 py-3 rounded-lg hover:bg-red-100 transition font-bold"
-                                        >
-                                            <TrashIcon className="w-5 h-5" /> លុប
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                <div className="flex items-center justify-center h-full bg-gray-50 p-4">
+                    <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm text-center">
+                        <div className="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
                         </div>
-                    )}
-
-                    <div className="bg-white shadow-sm p-4 flex items-center justify-between z-10 border-b">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-blue-600 p-2 rounded-lg">
-                                <MessageSquareIcon className="w-6 h-6 text-white" />
-                            </div>
-                            <div>
-                                <h1 className="font-bold text-gray-800 text-lg">បន្ទប់ជជែកទូទៅ</h1>
-                                <div className="flex items-center gap-2">
-                                    <p className="text-xs text-green-600 flex items-center gap-1">
-                                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                        {username}
-                                    </p>
-                                    {isLocked && (
-                                        <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                                            <LockIcon className="w-3 h-3" /> ជាប់គណនី
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                        {messages.length === 0 ? (
-                            <div className="text-center text-gray-400 mt-10">
-                                <p>មិនទាន់មានសារទេ។ ចាប់ផ្តើមជជែកឥឡូវនេះ!</p>
-                            </div>
-                        ) : (
-                            messages.map((msg) => {
-                                const isMe = msg.uid === userId;
-                                return (
-                                    <div 
-                                        key={msg.id} 
-                                        className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}
-                                    >
-                                        <div 
-                                            className={`flex flex-col max-w-[75%] ${isMe ? 'items-end' : 'items-start'} group`}
-                                        >
-                                            {!isMe && (
-                                                <span className="text-xs text-gray-500 mb-1 ml-1">
-                                                    {msg.senderName}
-                                                </span>
-                                            )}
-                                            
-                                            <div 
-                                                onClick={() => isMe && handleMessageClick(msg)}
-                                                className={`px-4 py-2 rounded-2xl break-words shadow-sm message-bubble relative ${
-                                                    isMe 
-                                                        ? 'bg-blue-600 text-white rounded-tr-none cursor-pointer hover:bg-blue-700' 
-                                                        : 'bg-white text-gray-800 rounded-tl-none'
-                                                }`}
-                                            >
-                                                {msg.text}
-                                                {msg.updatedAt && <span className="text-[8px] opacity-70 block text-right italic">កែប្រែ</span>}
-                                            </div>
-                                            
-                                            <span className="text-[10px] text-gray-400 mt-1 px-1">
-                                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    <div className="bg-white p-4 border-t border-gray-200">
-                        {/* Editing Indicator */}
-                        {editingMessageId && (
-                            <div className="flex justify-between items-center bg-blue-50 p-2 px-4 rounded-t-lg border-b border-blue-100 text-blue-700 text-xs mb-[-1px] mx-auto max-w-4xl">
-                                <span className="flex items-center gap-1 font-bold"><EditIcon className="w-3 h-3"/> កំពុងកែប្រែសារ...</span>
-                                <button onClick={cancelEdit} className="text-blue-400 hover:text-blue-700"><XIcon className="w-4 h-4"/></button>
-                            </div>
-                        )}
+                        <h1 className="text-2xl font-bold text-gray-800 mb-2">សូមស្វាគមន៍</h1>
+                        <p className="text-gray-500 mb-8 text-sm">បង្កើតគណនីដើម្បីចាប់ផ្តើមប្រើប្រាស់</p>
                         
-                        <form onSubmit={handleSendMessage} className="flex gap-2 max-w-4xl mx-auto">
+                        <form onSubmit={(e) => { e.preventDefault(); onRegister(name); }}>
                             <input
-                                ref={inputRef}
                                 type="text"
-                                value={inputText}
-                                onChange={(e) => setInputText(e.target.value)}
-                                placeholder="សរសេរសារ..."
-                                className={`flex-1 px-4 py-3 bg-gray-100 border-none rounded-full focus:ring-2 focus:bg-white transition outline-none ${editingMessageId ? 'ring-2 ring-blue-500 bg-white' : 'focus:ring-blue-500'}`}
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="ឈ្មោះរបស់អ្នក..."
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none transition"
+                                autoFocus
                             />
                             <button
                                 type="submit"
-                                disabled={!inputText.trim()}
-                                className={`p-3 text-white rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md ${editingMessageId ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                                disabled={!name.trim()}
+                                className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-lg disabled:opacity-50"
                             >
-                                {editingMessageId ? <CheckIcon className="w-5 h-5" /> : <SendIcon className="w-5 h-5" />}
+                                ស្នើសុំបើកគណនី
                             </button>
                         </form>
                     </div>

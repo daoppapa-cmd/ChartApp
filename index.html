@@ -97,6 +97,7 @@
             };
         }
 
+
         const app = initializeApp(getFirebaseConfig());
         // Initialize Realtime Database
         const db = getDatabase(app); 
@@ -105,6 +106,7 @@
             // យើងលែងប្រើ auth.currentUser ពី Firebase Auth ហើយ
             // យើងបង្កើត User ID ផ្ទាល់ខ្លួនសម្រាប់ Session នេះ
             const [userId, setUserId] = useState(null);
+            const [isMobile, setIsMobile] = useState(false); // State ដើម្បីឆែកថាជាទូរស័ព្ទឬអត់
             
             const [messages, setMessages] = useState([]);
             const [inputText, setInputText] = useState('');
@@ -115,7 +117,7 @@
             const messagesEndRef = useRef(null);
             const fileInputRef = useRef(null);
 
-            // 1. Setup User ID (Guest Mode)
+            // 1. Setup User ID (Guest Mode) & Mobile Check
             useEffect(() => {
                 // បង្កើត ID សម្រាប់អ្នកប្រើប្រាស់ម្នាក់ៗ (រក្សាទុកក្នុង LocalStorage ដើម្បីកុំឱ្យបាត់ពេល Refresh)
                 let storedId = localStorage.getItem('chat_guest_id');
@@ -124,6 +126,14 @@
                     localStorage.setItem('chat_guest_id', storedId);
                 }
                 setUserId(storedId);
+
+                // ឆែកមើលថាតើជាទូរស័ព្ទឬអត់
+                const checkMobile = () => {
+                    const userAgent = typeof window.navigator === "undefined" ? "" : navigator.userAgent;
+                    const mobile = Boolean(userAgent.match(/Android|BlackBerry|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i));
+                    setIsMobile(mobile);
+                };
+                checkMobile();
             }, []);
 
             // 2. Load Messages from Realtime Database
@@ -325,7 +335,15 @@
 
                         <form onSubmit={handleSend} className="flex items-end gap-2">
                             <div className="relative">
-                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" id="file-upload" />
+                                {/* កន្លែងនេះដែលយើងដាក់លក្ខខណ្ឌសម្រាប់ទូរស័ព្ទ */}
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    onChange={handleFileChange} 
+                                    className="hidden" 
+                                    id="file-upload" 
+                                    accept={isMobile ? "image/*,video/*" : "*/*"}
+                                />
                                 <label htmlFor="file-upload" className={`flex items-center justify-center w-10 h-10 rounded-full cursor-pointer transition-colors ${isUploading ? 'bg-gray-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>
                                     {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Paperclip size={20} />}
                                 </label>

@@ -121,37 +121,44 @@
         const CLOUDINARY_CLOUD_NAME = "demo"; 
         const CLOUDINARY_UPLOAD_PRESET = "docs_upload_example_us_preset"; 
 
-        // --- Firebase Config Handling ---
+        // --- Firebase Config Handling (FIXED) ---
         
-        // ១. ដាក់កូដ Firebase Config របស់អ្នកនៅទីនេះ (បានមកពី Firebase Console)
-        // 1. Paste your Firebase Config here (from Firebase Console)
-        const firebaseConfig = {
-  apiKey: "AIzaSyCPTS4NN_cbPggJBfDveLzBzr6nA5ziVpw",
+        // ប្រើ Function នេះដើម្បីការពារ Error "ReferenceError"
+        function getFirebaseConfig() {
+            // 1. សាកល្បងរក Config ពីប្រព័ន្ធ (សម្រាប់ Preview)
+            try {
+                if (typeof __firebase_config !== 'undefined') {
+                    return JSON.parse(__firebase_config);
+                }
+            } catch (e) {
+                // Ignore error if not found
+            }
+
+            // 2. ប្រើ Manual Config (សម្រាប់ GitHub Pages ឬ Website ផ្ទាល់ខ្លួន)
+            // សូមយកកូដពី Firebase Console មកដាក់ជំនួសកន្លែងនេះ
+            return {
+                apiKey: "AIzaSyCPTS4NN_cbPggJBfDveLzBzr6nA5ziVpw",
   authDomain: "chartapp-e99be.firebaseapp.com",
   projectId: "chartapp-e99be",
   storageBucket: "chartapp-e99be.firebasestorage.app",
   messagingSenderId: "966338612308",
   appId: "1:966338612308:web:1feb75563c54c6be2671c1",
   measurementId: "G-GVDK9QF9MV"
-};
+            };
+        }
 
-        // ២. ដាក់ឈ្មោះ App ID របស់អ្នកនៅទីនេះ (ឧ. 'my-chat')
-        const manualAppId = 'khmer-chat-app';
+        function getAppId() {
+            try {
+                if (typeof __app_id !== 'undefined') return __app_id;
+            } catch (e) {}
+            return 'khmer-chat-app'; // ឈ្មោះ App សម្រាប់ Website ផ្ទាល់ខ្លួន
+        }
 
-        // System Logic (កូដនេះជួយឱ្យវាដំណើរការក្នុង Preview, កុំកែវាប្រសិនបើមិនចាំបាច់)
-        // Re-named variable to avoid naming conflicts
-        const chatAppConfig = (typeof __firebase_config !== 'undefined') 
-            ? JSON.parse(__firebase_config) 
-            : manualFirebaseConfig;
-            
-        const appId = (typeof __app_id !== 'undefined') 
-            ? __app_id 
-            : manualAppId;
-
-        // Initialize with the renamed config variable
-        const app = initializeApp(chatAppConfig);
+        // Initialize Firebase with the safe config
+        const app = initializeApp(getFirebaseConfig());
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const appId = getAppId();
 
         // --- Main App Component ---
         function App() {
@@ -168,9 +175,16 @@
             // 1. Authentication
             useEffect(() => {
                 const initAuth = async () => {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
+                    // Check custom token safely
+                    let hasCustomToken = false;
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            hasCustomToken = true;
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        }
+                    } catch (e) {}
+
+                    if (!hasCustomToken) {
                         await signInAnonymously(auth);
                     }
                 };

@@ -139,7 +139,8 @@
         const manualAppId = 'khmer-chat-app';
 
         // System Logic (កូដនេះជួយឱ្យវាដំណើរការក្នុង Preview, កុំកែវាប្រសិនបើមិនចាំបាច់)
-        const firebaseConfig = (typeof __firebase_config !== 'undefined') 
+        // Re-named variable to avoid naming conflicts
+        const chatAppConfig = (typeof __firebase_config !== 'undefined') 
             ? JSON.parse(__firebase_config) 
             : manualFirebaseConfig;
             
@@ -147,7 +148,8 @@
             ? __app_id 
             : manualAppId;
 
-        const app = initializeApp(firebaseConfig);
+        // Initialize with the renamed config variable
+        const app = initializeApp(chatAppConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 

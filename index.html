@@ -40,28 +40,22 @@
 <body class="bg-gray-100">
     <div id="root"></div>
 
-    <!-- Firebase Configuration & Setup -->
+    <!-- Firebase Configuration & Setup (REALTIME DATABASE VERSION) -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, setDoc, getDoc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+        // Import Realtime Database functions instead of Firestore
+        import { getDatabase, ref, push, set, onValue, update, remove, get } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
 
         window.fb = {
             initializeApp,
-            getAuth,
-            signInAnonymously,
-            onAuthStateChanged,
-            signInWithCustomToken,
-            getFirestore,
-            collection,
-            addDoc,
-            onSnapshot,
-            serverTimestamp,
-            doc,
-            setDoc,
-            getDoc,
-            updateDoc,
-            deleteDoc
+            getDatabase,
+            ref,
+            push,
+            set,
+            onValue,
+            update,
+            remove,
+            get
         };
 
         window.dispatchEvent(new Event('firebase-ready'));
@@ -128,7 +122,6 @@
         // --- Main App Component ---
         function App() {
             const [firebaseReady, setFirebaseReady] = useState(false);
-            const [user, setUser] = useState(null);
             const [messages, setMessages] = useState([]);
             const [inputText, setInputText] = useState('');
             const [loading, setLoading] = useState(true);
@@ -137,45 +130,66 @@
             const [isNameSet, setIsNameSet] = useState(false);
             const [isLocked, setIsLocked] = useState(false);
             
+            // User Identity State (Custom, not Firebase Auth)
+            const [userId, setUserId] = useState(null);
+
             // New States for Update/Delete
             const [selectedMessage, setSelectedMessage] = useState(null);
             const [editingMessageId, setEditingMessageId] = useState(null);
             
             const messagesEndRef = useRef(null);
             const appRef = useRef(null);
-            const authRef = useRef(null);
-            const dbRef = useRef(null);
+            const dbRef = useRef(null); // Realtime DB Ref
             const inputRef = useRef(null);
 
-            // 1. Initialize Firebase
+            // 1. Initialize Firebase & Custom Identity
             useEffect(() => {
                 const initFirebase = () => {
                     if (window.fb) {
                         try {
                             const getFirebaseConfig = () => {
-                                try {
-                                    if (typeof window.__firebase_config !== 'undefined') {
-                                        return JSON.parse(window.__firebase_config);
-                                    }
-                                } catch (e) {
-                                    console.error("Firebase config error", e);
-                                }
-                                return {
+                                // Default fallback config
+                                let config = {
                                     apiKey: "AIzaSyCPTS4NN_cbPggJBfDveLzBzr6nA5ziVpw",
                                     authDomain: "chartapp-e99be.firebaseapp.com",
                                     projectId: "chartapp-e99be",
+                                    // *** IMPORTANT: DATABASE URL IS REQUIRED FOR REALTIME DATABASE ***
+                                    databaseURL: "https://chartapp-e99be-default-rtdb.firebaseio.com/" 
                                 };
+
+                                // Try to use system config if available (for preview environment)
+                                try {
+                                    if (typeof window.__firebase_config !== 'undefined') {
+                                        const sysConfig = JSON.parse(window.__firebase_config);
+                                        // System config usually lacks databaseURL, so we merge carefully
+                                        config = { ...config, ...sysConfig };
+                                        if (!config.databaseURL) {
+                                            // Fallback if system config doesn't have it
+                                             config.databaseURL = "https://chartapp-e99be-default-rtdb.firebaseio.com/";
+                                        }
+                                    }
+                                } catch (e) { console.error(e); }
+                                
+                                return config;
                             };
 
                             const config = getFirebaseConfig();
                             const app = window.fb.initializeApp(config);
-                            const auth = window.fb.getAuth(app);
-                            const db = window.fb.getFirestore(app);
+                            const db = window.fb.getDatabase(app);
 
                             appRef.current = app;
-                            authRef.current = auth;
                             dbRef.current = db;
                             setFirebaseReady(true);
+
+                            // --- Custom Identity Logic (No Firebase Auth) ---
+                            let localUid = localStorage.getItem('chat_app_uid');
+                            if (!localUid) {
+                                // Generate a simple random ID if none exists
+                                localUid = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                                localStorage.setItem('chat_app_uid', localUid);
+                            }
+                            setUserId(localUid);
+
                         } catch (err) {
                             console.error("Firebase init failed:", err);
                         }
@@ -187,97 +201,84 @@
                 return () => window.removeEventListener('firebase-ready', initFirebase);
             }, []);
 
-            // 2. Authentication & User Profile Check
+            // 2. Check User Profile (Realtime DB)
             useEffect(() => {
-                if (!firebaseReady) return;
+                if (!firebaseReady || !userId) return;
 
-                const initAuth = async () => {
-                    const auth = authRef.current;
+                const checkProfile = async () => {
+                    setCheckingProfile(true);
                     try {
-                        if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
-                            await window.fb.signInWithCustomToken(auth, window.__initial_auth_token);
-                        } else {
-                            await window.fb.signInAnonymously(auth);
+                        const db = dbRef.current;
+                        const userRef = window.fb.ref(db, 'users/' + userId);
+                        const snapshot = await window.fb.get(userRef);
+
+                        if (snapshot.exists()) {
+                            const userData = snapshot.val();
+                            if (userData.username) {
+                                setUsername(userData.username);
+                                setIsNameSet(true);
+                                setIsLocked(true);
+                            }
                         }
                     } catch (error) {
-                        console.error("Auth error:", error);
+                        console.error("Error checking profile:", error);
+                    } finally {
+                        setCheckingProfile(false);
+                        setLoading(false);
                     }
                 };
 
-                initAuth();
+                checkProfile();
+            }, [firebaseReady, userId]);
 
-                const unsubscribe = window.fb.onAuthStateChanged(authRef.current, async (currentUser) => {
-                    if (currentUser) {
-                        setUser(currentUser);
-                        await checkUserProfile(currentUser.uid);
-                    } else {
-                        setLoading(false);
-                    }
-                });
-
-                return () => unsubscribe();
-            }, [firebaseReady]);
-
-            const checkUserProfile = async (uid) => {
-                setCheckingProfile(true);
-                try {
-                    const db = dbRef.current;
-                    const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'demo-chat-app';
-                    const userDocRef = window.fb.doc(db, 'artifacts', appId, 'users', uid, 'profile', 'info');
-                    const userDoc = await window.fb.getDoc(userDocRef);
-
-                    if (userDoc.exists()) {
-                        const userData = userDoc.data();
-                        if (userData.username) {
-                            setUsername(userData.username);
-                            setIsNameSet(true);
-                            setIsLocked(true);
-                        }
-                    }
-                } catch (error) {
-                    console.error("Error checking profile:", error);
-                } finally {
-                    setCheckingProfile(false);
-                    setLoading(false);
-                }
-            };
-
-            // 3. Message Listener
+            // 3. Message Listener (Realtime DB)
             useEffect(() => {
-                if (!user || !firebaseReady) return;
+                if (!firebaseReady) return;
 
                 const db = dbRef.current;
-                const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'demo-chat-app';
-                const messagesRef = window.fb.collection(db, 'artifacts', appId, 'public', 'data', 'chat_messages');
+                const messagesRef = window.fb.ref(db, 'messages');
 
-                const unsubscribe = window.fb.onSnapshot(messagesRef, (snapshot) => {
-                    const loadedMessages = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
+                const unsubscribe = window.fb.onValue(messagesRef, (snapshot) => {
+                    const data = snapshot.val();
+                    const loadedMessages = [];
+                    if (data) {
+                        Object.keys(data).forEach(key => {
+                            loadedMessages.push({
+                                id: key,
+                                ...data[key]
+                            });
+                        });
+                    }
 
+                    // Sort by timestamp
                     loadedMessages.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
                     setMessages(loadedMessages);
-                }, (error) => console.error("Data fetch error:", error));
+                    setLoading(false); // Ensure loading is off once data loads
+                }, (error) => {
+                    console.error("Data fetch error:", error);
+                    setLoading(false);
+                });
 
+                // In Realtime DB SDK, unsubscribe is returned differently or handled by 'off'
+                // But onValue returns an unsubscribe function in modular SDK
                 return () => unsubscribe();
-            }, [user, firebaseReady]);
+            }, [firebaseReady]);
 
             useEffect(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
             }, [messages]);
 
+            // 4. Save Name (Realtime DB)
             const handleNameSubmit = async (e) => {
                 e.preventDefault();
-                if (!username.trim() || !user) return;
+                if (!username.trim() || !userId) return;
 
                 setLoading(true);
                 try {
                     const db = dbRef.current;
-                    const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'demo-chat-app';
-                    const userDocRef = window.fb.doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'info');
+                    const userRef = window.fb.ref(db, 'users/' + userId);
                     
-                    await window.fb.setDoc(userDocRef, {
+                    await window.fb.set(userRef, {
                         username: username.trim(),
                         createdAt: Date.now(),
                         deviceId: navigator.userAgent
@@ -287,7 +288,7 @@
                     setIsLocked(true);
                 } catch (error) {
                     console.error("Error saving profile:", error);
-                    alert("មានបញ្ហាក្នុងការរក្សាទុកឈ្មោះ។ សូមព្យាយាមម្តងទៀត។");
+                    alert("មានបញ្ហាក្នុងការរក្សាទុកឈ្មោះ។ សូមពិនិត្យមើល Database Rules។");
                 } finally {
                     setLoading(false);
                 }
@@ -296,7 +297,8 @@
             // --- Handlers for Update/Delete ---
 
             const handleMessageClick = (msg) => {
-                if (msg.uid === user.uid) {
+                // Check if the message belongs to the current device user
+                if (msg.uid === userId) {
                     setSelectedMessage(msg);
                 }
             };
@@ -305,7 +307,7 @@
                 if (selectedMessage) {
                     setEditingMessageId(selectedMessage.id);
                     setInputText(selectedMessage.text);
-                    setSelectedMessage(null); // Close modal
+                    setSelectedMessage(null);
                     setTimeout(() => inputRef.current?.focus(), 100);
                 }
             };
@@ -316,11 +318,9 @@
                     if (confirmDelete) {
                         try {
                             const db = dbRef.current;
-                            const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'demo-chat-app';
-                            const msgRef = window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'chat_messages', selectedMessage.id);
-                            await window.fb.deleteDoc(msgRef);
+                            const msgRef = window.fb.ref(db, 'messages/' + selectedMessage.id);
+                            await window.fb.remove(msgRef);
                             
-                            // If we were editing this deleted message, cancel edit
                             if (editingMessageId === selectedMessage.id) {
                                 setEditingMessageId(null);
                                 setInputText('');
@@ -330,7 +330,7 @@
                             alert("បរាជ័យក្នុងការលុបសារ");
                         }
                     }
-                    setSelectedMessage(null); // Close modal
+                    setSelectedMessage(null);
                 }
             };
 
@@ -340,13 +340,12 @@
                 setSelectedMessage(null);
             };
 
-            // 5. Send or Update Message
+            // 5. Send or Update Message (Realtime DB)
             const handleSendMessage = async (e) => {
                 e.preventDefault();
-                if (!inputText.trim() || !user) return;
+                if (!inputText.trim() || !userId) return;
 
                 const textToSend = inputText;
-                // Optimistic clear
                 setInputText('');
                 
                 const isUpdate = !!editingMessageId;
@@ -354,21 +353,20 @@
 
                 try {
                     const db = dbRef.current;
-                    const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'demo-chat-app';
                     
                     if (isUpdate) {
-                        // Update existing message
-                        const msgRef = window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'chat_messages', editingMessageId);
-                        await window.fb.updateDoc(msgRef, {
+                        // Update
+                        const msgRef = window.fb.ref(db, 'messages/' + editingMessageId);
+                        await window.fb.update(msgRef, {
                             text: textToSend,
                             updatedAt: Date.now()
                         });
                     } else {
-                        // Send new message
-                        const messagesRef = window.fb.collection(db, 'artifacts', appId, 'public', 'data', 'chat_messages');
-                        await window.fb.addDoc(messagesRef, {
+                        // Create New
+                        const messagesRef = window.fb.ref(db, 'messages');
+                        await window.fb.push(messagesRef, {
                             text: textToSend,
-                            uid: user.uid,
+                            uid: userId, // Use local ID
                             senderName: username,
                             createdAt: Date.now(),
                             type: 'text'
@@ -376,7 +374,7 @@
                     }
                 } catch (error) {
                     console.error("Error sending/updating message:", error);
-                    setInputText(textToSend); // Restore text on error
+                    setInputText(textToSend);
                     if (isUpdate) setEditingMessageId(editingMessageId);
                 }
             };
@@ -493,7 +491,7 @@
                             </div>
                         ) : (
                             messages.map((msg) => {
-                                const isMe = msg.uid === user.uid;
+                                const isMe = msg.uid === userId;
                                 return (
                                     <div 
                                         key={msg.id} 

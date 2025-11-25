@@ -122,24 +122,34 @@
         const CLOUDINARY_UPLOAD_PRESET = "docs_upload_example_us_preset"; 
 
         // --- Firebase Config Handling ---
-        // Checking if environment variables exist (for resilience)
-        const getFirebaseConfig = () => {
-            if (typeof __firebase_config !== 'undefined') {
-                return JSON.parse(__firebase_config);
-            }
-            console.error("Firebase config not found!");
-            return {};
-        };
         
-        const getAppId = () => {
-            return typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        };
+        // ១. ដាក់កូដ Firebase Config របស់អ្នកនៅទីនេះ (បានមកពី Firebase Console)
+        // 1. Paste your Firebase Config here (from Firebase Console)
+        const firebaseConfig = {
+  apiKey: "AIzaSyCPTS4NN_cbPggJBfDveLzBzr6nA5ziVpw",
+  authDomain: "chartapp-e99be.firebaseapp.com",
+  projectId: "chartapp-e99be",
+  storageBucket: "chartapp-e99be.firebasestorage.app",
+  messagingSenderId: "966338612308",
+  appId: "1:966338612308:web:1feb75563c54c6be2671c1",
+  measurementId: "G-GVDK9QF9MV"
+};
 
-        const firebaseConfig = getFirebaseConfig();
+        // ២. ដាក់ឈ្មោះ App ID របស់អ្នកនៅទីនេះ (ឧ. 'my-chat')
+        const manualAppId = 'khmer-chat-app';
+
+        // System Logic (កូដនេះជួយឱ្យវាដំណើរការក្នុង Preview, កុំកែវាប្រសិនបើមិនចាំបាច់)
+        const firebaseConfig = (typeof __firebase_config !== 'undefined') 
+            ? JSON.parse(__firebase_config) 
+            : manualFirebaseConfig;
+            
+        const appId = (typeof __app_id !== 'undefined') 
+            ? __app_id 
+            : manualAppId;
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = getAppId();
 
         // --- Main App Component ---
         function App() {

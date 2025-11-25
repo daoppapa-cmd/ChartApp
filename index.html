@@ -29,6 +29,12 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+        .message-bubble {
+            transition: all 0.2s;
+        }
+        .message-bubble:active {
+            transform: scale(0.98);
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -38,7 +44,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, setDoc, getDoc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
         window.fb = {
             initializeApp,
@@ -53,7 +59,9 @@
             serverTimestamp,
             doc,
             setDoc,
-            getDoc
+            getDoc,
+            updateDoc,
+            deleteDoc
         };
 
         window.dispatchEvent(new Event('firebase-ready'));
@@ -90,6 +98,33 @@
             </svg>
         );
 
+        const EditIcon = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+        );
+
+        const TrashIcon = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+        );
+
+        const XIcon = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        );
+
+        const CheckIcon = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+        );
+
         // --- Main App Component ---
         function App() {
             const [firebaseReady, setFirebaseReady] = useState(false);
@@ -102,10 +137,15 @@
             const [isNameSet, setIsNameSet] = useState(false);
             const [isLocked, setIsLocked] = useState(false);
             
+            // New States for Update/Delete
+            const [selectedMessage, setSelectedMessage] = useState(null);
+            const [editingMessageId, setEditingMessageId] = useState(null);
+            
             const messagesEndRef = useRef(null);
             const appRef = useRef(null);
             const authRef = useRef(null);
             const dbRef = useRef(null);
+            const inputRef = useRef(null);
 
             // 1. Initialize Firebase
             useEffect(() => {
@@ -154,12 +194,9 @@
                 const initAuth = async () => {
                     const auth = authRef.current;
                     try {
-                        // Check if we already have a locked session token logic handled by Firebase persistence
-                        // If window.__initial_auth_token exists, use it (Immersive env)
                         if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
                             await window.fb.signInWithCustomToken(auth, window.__initial_auth_token);
                         } else {
-                            // Standard Anonymous Auth (Persists in IndexedDB by default)
                             await window.fb.signInAnonymously(auth);
                         }
                     } catch (error) {
@@ -172,10 +209,8 @@
                 const unsubscribe = window.fb.onAuthStateChanged(authRef.current, async (currentUser) => {
                     if (currentUser) {
                         setUser(currentUser);
-                        // Once authenticated, check if this user already has a profile (name)
                         await checkUserProfile(currentUser.uid);
                     } else {
-                        // If no user (logged out), force sign in again if needed
                         setLoading(false);
                     }
                 });
@@ -183,15 +218,11 @@
                 return () => unsubscribe();
             }, [firebaseReady]);
 
-            // Helper: Check User Profile in Firestore
             const checkUserProfile = async (uid) => {
                 setCheckingProfile(true);
                 try {
                     const db = dbRef.current;
                     const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'demo-chat-app';
-                    
-                    // Specific path for user profile: artifacts/{appId}/users/{uid}/profile/info
-                    // We use a sub-collection 'profile' and doc 'info' to keep it organized
                     const userDocRef = window.fb.doc(db, 'artifacts', appId, 'users', uid, 'profile', 'info');
                     const userDoc = await window.fb.getDoc(userDocRef);
 
@@ -200,7 +231,7 @@
                         if (userData.username) {
                             setUsername(userData.username);
                             setIsNameSet(true);
-                            setIsLocked(true); // Account is locked to this device
+                            setIsLocked(true);
                         }
                     }
                 } catch (error) {
@@ -232,12 +263,10 @@
                 return () => unsubscribe();
             }, [user, firebaseReady]);
 
-            // Scroll Helper
             useEffect(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
             }, [messages]);
 
-            // 4. Save Name & Create Profile
             const handleNameSubmit = async (e) => {
                 e.preventDefault();
                 if (!username.trim() || !user) return;
@@ -246,14 +275,12 @@
                 try {
                     const db = dbRef.current;
                     const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'demo-chat-app';
-                    
-                    // Save to Firestore: artifacts/{appId}/users/{uid}/profile/info
                     const userDocRef = window.fb.doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'info');
                     
                     await window.fb.setDoc(userDocRef, {
                         username: username.trim(),
                         createdAt: Date.now(),
-                        deviceId: navigator.userAgent // Optional: store device info
+                        deviceId: navigator.userAgent
                     });
 
                     setIsNameSet(true);
@@ -266,33 +293,94 @@
                 }
             };
 
-            // 5. Send Message
+            // --- Handlers for Update/Delete ---
+
+            const handleMessageClick = (msg) => {
+                if (msg.uid === user.uid) {
+                    setSelectedMessage(msg);
+                }
+            };
+
+            const handleEditAction = () => {
+                if (selectedMessage) {
+                    setEditingMessageId(selectedMessage.id);
+                    setInputText(selectedMessage.text);
+                    setSelectedMessage(null); // Close modal
+                    setTimeout(() => inputRef.current?.focus(), 100);
+                }
+            };
+
+            const handleDeleteAction = async () => {
+                if (selectedMessage) {
+                    const confirmDelete = window.confirm("តើអ្នកពិតជាចង់លុបសារនេះមែនទេ?");
+                    if (confirmDelete) {
+                        try {
+                            const db = dbRef.current;
+                            const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'demo-chat-app';
+                            const msgRef = window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'chat_messages', selectedMessage.id);
+                            await window.fb.deleteDoc(msgRef);
+                            
+                            // If we were editing this deleted message, cancel edit
+                            if (editingMessageId === selectedMessage.id) {
+                                setEditingMessageId(null);
+                                setInputText('');
+                            }
+                        } catch (error) {
+                            console.error("Error deleting message:", error);
+                            alert("បរាជ័យក្នុងការលុបសារ");
+                        }
+                    }
+                    setSelectedMessage(null); // Close modal
+                }
+            };
+
+            const cancelEdit = () => {
+                setEditingMessageId(null);
+                setInputText('');
+                setSelectedMessage(null);
+            };
+
+            // 5. Send or Update Message
             const handleSendMessage = async (e) => {
                 e.preventDefault();
                 if (!inputText.trim() || !user) return;
 
                 const textToSend = inputText;
+                // Optimistic clear
                 setInputText('');
+                
+                const isUpdate = !!editingMessageId;
+                if (isUpdate) setEditingMessageId(null);
 
                 try {
                     const db = dbRef.current;
                     const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'demo-chat-app';
-                    const messagesRef = window.fb.collection(db, 'artifacts', appId, 'public', 'data', 'chat_messages');
                     
-                    await window.fb.addDoc(messagesRef, {
-                        text: textToSend,
-                        uid: user.uid,
-                        senderName: username,
-                        createdAt: Date.now(),
-                        type: 'text'
-                    });
+                    if (isUpdate) {
+                        // Update existing message
+                        const msgRef = window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'chat_messages', editingMessageId);
+                        await window.fb.updateDoc(msgRef, {
+                            text: textToSend,
+                            updatedAt: Date.now()
+                        });
+                    } else {
+                        // Send new message
+                        const messagesRef = window.fb.collection(db, 'artifacts', appId, 'public', 'data', 'chat_messages');
+                        await window.fb.addDoc(messagesRef, {
+                            text: textToSend,
+                            uid: user.uid,
+                            senderName: username,
+                            createdAt: Date.now(),
+                            type: 'text'
+                        });
+                    }
                 } catch (error) {
-                    console.error("Error sending message:", error);
-                    setInputText(textToSend);
+                    console.error("Error sending/updating message:", error);
+                    setInputText(textToSend); // Restore text on error
+                    if (isUpdate) setEditingMessageId(editingMessageId);
                 }
             };
 
-            // Loading Screen
             if (loading || !firebaseReady || checkingProfile) {
                 return (
                     <div className="flex items-center justify-center h-screen bg-gray-100">
@@ -304,7 +392,6 @@
                 );
             }
 
-            // Name Input Screen (Only shown if no profile exists)
             if (!isNameSet) {
                 return (
                     <div className="flex items-center justify-center h-screen bg-gray-100 p-4 font-battambang">
@@ -341,9 +428,42 @@
                 );
             }
 
-            // Main Chat Screen
             return (
-                <div className="flex flex-col h-screen bg-gray-100 font-battambang">
+                <div className="flex flex-col h-screen bg-gray-100 font-battambang relative">
+                    
+                    {/* Action Modal */}
+                    {selectedMessage && (
+                        <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center p-4" onClick={() => setSelectedMessage(null)}>
+                            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100" onClick={e => e.stopPropagation()}>
+                                <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+                                    <h3 className="font-bold text-gray-700">ជម្រើស</h3>
+                                    <button onClick={() => setSelectedMessage(null)} className="text-gray-400 hover:text-gray-600">
+                                        <XIcon className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <div className="p-4">
+                                    <p className="text-sm text-gray-500 mb-4 bg-gray-100 p-3 rounded-lg italic border-l-4 border-blue-500">
+                                        "{selectedMessage.text.length > 50 ? selectedMessage.text.substring(0, 50) + '...' : selectedMessage.text}"
+                                    </p>
+                                    <div className="space-y-2">
+                                        <button 
+                                            onClick={handleEditAction}
+                                            className="w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-700 py-3 rounded-lg hover:bg-blue-100 transition font-bold"
+                                        >
+                                            <EditIcon className="w-5 h-5" /> កែប្រែ
+                                        </button>
+                                        <button 
+                                            onClick={handleDeleteAction}
+                                            className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 py-3 rounded-lg hover:bg-red-100 transition font-bold"
+                                        >
+                                            <TrashIcon className="w-5 h-5" /> លុប
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="bg-white shadow-sm p-4 flex items-center justify-between z-10 border-b">
                         <div className="flex items-center gap-3">
                             <div className="bg-blue-600 p-2 rounded-lg">
@@ -379,7 +499,9 @@
                                         key={msg.id} 
                                         className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}
                                     >
-                                        <div className={`flex flex-col max-w-[75%] ${isMe ? 'items-end' : 'items-start'}`}>
+                                        <div 
+                                            className={`flex flex-col max-w-[75%] ${isMe ? 'items-end' : 'items-start'} group`}
+                                        >
                                             {!isMe && (
                                                 <span className="text-xs text-gray-500 mb-1 ml-1">
                                                     {msg.senderName}
@@ -387,13 +509,15 @@
                                             )}
                                             
                                             <div 
-                                                className={`px-4 py-2 rounded-2xl break-words shadow-sm ${
+                                                onClick={() => isMe && handleMessageClick(msg)}
+                                                className={`px-4 py-2 rounded-2xl break-words shadow-sm message-bubble relative ${
                                                     isMe 
-                                                        ? 'bg-blue-600 text-white rounded-tr-none' 
+                                                        ? 'bg-blue-600 text-white rounded-tr-none cursor-pointer hover:bg-blue-700' 
                                                         : 'bg-white text-gray-800 rounded-tl-none'
                                                 }`}
                                             >
                                                 {msg.text}
+                                                {msg.updatedAt && <span className="text-[8px] opacity-70 block text-right italic">កែប្រែ</span>}
                                             </div>
                                             
                                             <span className="text-[10px] text-gray-400 mt-1 px-1">
@@ -408,20 +532,29 @@
                     </div>
 
                     <div className="bg-white p-4 border-t border-gray-200">
+                        {/* Editing Indicator */}
+                        {editingMessageId && (
+                            <div className="flex justify-between items-center bg-blue-50 p-2 px-4 rounded-t-lg border-b border-blue-100 text-blue-700 text-xs mb-[-1px] mx-auto max-w-4xl">
+                                <span className="flex items-center gap-1 font-bold"><EditIcon className="w-3 h-3"/> កំពុងកែប្រែសារ...</span>
+                                <button onClick={cancelEdit} className="text-blue-400 hover:text-blue-700"><XIcon className="w-4 h-4"/></button>
+                            </div>
+                        )}
+                        
                         <form onSubmit={handleSendMessage} className="flex gap-2 max-w-4xl mx-auto">
                             <input
+                                ref={inputRef}
                                 type="text"
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                                 placeholder="សរសេរសារ..."
-                                className="flex-1 px-4 py-3 bg-gray-100 border-none rounded-full focus:ring-2 focus:ring-blue-500 focus:bg-white transition outline-none"
+                                className={`flex-1 px-4 py-3 bg-gray-100 border-none rounded-full focus:ring-2 focus:bg-white transition outline-none ${editingMessageId ? 'ring-2 ring-blue-500 bg-white' : 'focus:ring-blue-500'}`}
                             />
                             <button
                                 type="submit"
                                 disabled={!inputText.trim()}
-                                className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                                className={`p-3 text-white rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md ${editingMessageId ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                             >
-                                <SendIcon className="w-5 h-5" />
+                                {editingMessageId ? <CheckIcon className="w-5 h-5" /> : <SendIcon className="w-5 h-5" />}
                             </button>
                         </form>
                     </div>

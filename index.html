@@ -73,7 +73,7 @@
 
     <!-- React Application Logic -->
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
 
         // --- Icons ---
         const SendIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>);
@@ -82,29 +82,31 @@
         const ArrowLeftIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>);
         const UserIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>);
         const UsersIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>);
-        const EditIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>);
         const TrashIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>);
         const XIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>);
         const CheckIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"></polyline></svg>);
         const LogoutIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>);
         const LockIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>);
         const SettingsIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>);
-        const PlusIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>);
         const CopyIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>);
         const UserMinusIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="23" y1="11" x2="17" y2="11"></line></svg>);
+        const LeaveIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>);
 
         function App() {
             const [firebaseReady, setFirebaseReady] = useState(false);
             const [view, setView] = useState('loading');
             const [currentUser, setCurrentUser] = useState(null);
             
-            // Home View States
+            // --- Separate States for Real-time Data ---
+            const [directChats, setDirectChats] = useState([]);
+            const [myGroupIds, setMyGroupIds] = useState([]);
+            const [allGroupsData, setAllGroupsData] = useState({});
+            const [allChats, setAllChats] = useState([]); // Merged & Sorted
+
+            // Home View UI States
             const [searchQuery, setSearchQuery] = useState('');
             const [searchResult, setSearchResult] = useState(null);
             const [searchError, setSearchError] = useState('');
-            const [myGroups, setMyGroups] = useState([]); 
-            const [recentChats, setRecentChats] = useState([]); // New: List of recent DMs
-            const [activeTab, setActiveTab] = useState('chats'); // Changed 'search' to 'chats'
             
             // Chat States
             const [activeChat, setActiveChat] = useState(null);
@@ -205,54 +207,77 @@
                 checkAuth();
             }, [firebaseReady]);
 
-            // 3. Fetch User's Groups & Recent Chats
+            // 3. Data Fetching Hooks (Split for reliability)
+            
+            // A. Fetch Direct Chats
             useEffect(() => {
                 if (view !== 'home' || !currentUser || !firebaseReady) return;
-                
                 const db = dbRef.current;
-                
-                // Fetch Groups
-                const userGroupsRef = window.fb.ref(db, `user_groups/${currentUser.uid}`);
-                const unsubscribeGroups = window.fb.onValue(userGroupsRef, async (snapshot) => {
+                const userChatsRef = window.fb.ref(db, `user_chats/${currentUser.uid}`);
+                const unsubscribe = window.fb.onValue(userChatsRef, (snapshot) => {
                     if (snapshot.exists()) {
-                        const groupsObj = snapshot.val();
-                        const groupIds = Object.keys(groupsObj);
-                        const loadedGroups = [];
-                        
-                        for (const gid of groupIds) {
-                            const gSnap = await window.fb.get(window.fb.ref(db, `groups/${gid}`));
-                            if (gSnap.exists()) {
-                                loadedGroups.push({ id: gid, ...gSnap.val() });
-                            }
-                        }
-                        setMyGroups(loadedGroups);
-                    } else {
-                        setMyGroups([]);
-                    }
-                });
-
-                // Fetch Recent Chats
-                const recentChatsRef = window.fb.ref(db, `user_chats/${currentUser.uid}`);
-                const unsubscribeChats = window.fb.onValue(recentChatsRef, (snapshot) => {
-                    if (snapshot.exists()) {
-                        const chatsData = snapshot.val();
-                        const chatsList = Object.keys(chatsData).map(key => ({
-                            partnerId: key,
-                            ...chatsData[key]
+                        const data = snapshot.val();
+                        const list = Object.keys(data).map(key => ({
+                            id: key, 
+                            ...data[key], 
+                            type: 'direct'
                         }));
-                        // Sort by timestamp (newest first)
-                        chatsList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                        setRecentChats(chatsList);
+                        setDirectChats(list);
                     } else {
-                        setRecentChats([]);
+                        setDirectChats([]);
                     }
                 });
-
-                return () => {
-                    unsubscribeGroups();
-                    unsubscribeChats();
-                };
+                return () => unsubscribe();
             }, [view, currentUser, firebaseReady]);
+
+            // B. Fetch User Group IDs
+            useEffect(() => {
+                if (view !== 'home' || !currentUser || !firebaseReady) return;
+                const db = dbRef.current;
+                const userGroupsRef = window.fb.ref(db, `user_groups/${currentUser.uid}`);
+                const unsubscribe = window.fb.onValue(userGroupsRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        setMyGroupIds(Object.keys(snapshot.val()));
+                    } else {
+                        setMyGroupIds([]);
+                    }
+                });
+                return () => unsubscribe();
+            }, [view, currentUser, firebaseReady]);
+
+            // C. Fetch All Groups Data (Optimized to listen for updates)
+            useEffect(() => {
+                if (view !== 'home' || !currentUser || !firebaseReady) return;
+                const db = dbRef.current;
+                const allGroupsRef = window.fb.ref(db, 'groups');
+                const unsubscribe = window.fb.onValue(allGroupsRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        setAllGroupsData(snapshot.val());
+                    } else {
+                        setAllGroupsData({});
+                    }
+                });
+                return () => unsubscribe();
+            }, [view, currentUser, firebaseReady]);
+
+            // D. Merge and Sort All Chats (Runs whenever any data changes)
+            useEffect(() => {
+                const groupList = myGroupIds.map(gid => {
+                    if (allGroupsData[gid]) {
+                        return {
+                            id: gid,
+                            ...allGroupsData[gid],
+                            type: 'group'
+                        };
+                    }
+                    return null;
+                }).filter(g => g !== null);
+
+                const merged = [...directChats, ...groupList];
+                merged.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                setAllChats(merged);
+            }, [directChats, myGroupIds, allGroupsData]);
+
 
             // --- Helper Functions ---
             const copyToClipboard = (text) => {
@@ -270,7 +295,7 @@
                 document.body.removeChild(textArea);
             };
 
-            // --- Auth Handlers ---
+            // --- Handlers ---
             const handleRegister = async (name) => {
                 if (!name.trim()) return;
                 const db = dbRef.current;
@@ -337,19 +362,21 @@
                 setView('login');
             };
 
-            // --- Group Handlers ---
             const handleCreateGroup = async () => {
                 if (!groupName.trim()) return;
                 const db = dbRef.current;
                 const groupId = 'group_' + Date.now() + Math.random().toString(36).substr(2, 5);
                 const inviteCode = Math.random().toString(36).substr(2, 8).toUpperCase();
+                const timestamp = Date.now();
                 
                 const groupData = {
                     name: groupName,
                     owner: currentUser.uid,
                     inviteCode: inviteCode,
-                    createdAt: Date.now(),
-                    members: { [currentUser.uid]: true }
+                    createdAt: timestamp,
+                    members: { [currentUser.uid]: true },
+                    lastMsg: "Group Created",
+                    timestamp: timestamp
                 };
 
                 try {
@@ -383,97 +410,69 @@
                 } catch (e) { alert("មានបញ្ហាក្នុងការចូលក្រុម។"); }
             };
 
-            const handleDeleteGroup = async () => {
-                if (!window.confirm("តើអ្នកពិតជាចង់លុបក្រុមនេះមែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។")) return;
-                const db = dbRef.current;
-                const groupId = activeChat.id;
-                
-                try {
-                    // Try to remove from all members if possible (best effort cleanup)
-                    if (groupMembers.length > 0) {
-                        const updates = {};
-                        groupMembers.forEach(m => {
-                            updates[`user_groups/${m.uid}/${groupId}`] = null;
-                        });
-                        await window.fb.update(window.fb.ref(db), updates);
-                    }
-
-                    // Remove main data
-                    await window.fb.remove(window.fb.ref(db, `groups/${groupId}`));
-                    await window.fb.remove(window.fb.ref(db, `messages/${groupId}`));
-                    await window.fb.remove(window.fb.ref(db, `group_invites/${activeChat.inviteCode}`));
-
-                    setShowSettingsModal(false);
-                    setView('home');
-                    setActiveChat(null);
-                    alert("បានលុបក្រុមជោគជ័យ។");
-                } catch (e) {
-                    alert("មានបញ្ហាក្នុងការលុបក្រុម។");
-                }
-            };
-
-            const handleDeleteRecentChat = async (partnerId, e) => {
+            const handleDeleteChatAction = async (chat, e) => {
                 e.stopPropagation();
-                if (!window.confirm("តើអ្នកចង់លុបការសន្ទនានេះចេញពីបញ្ជីមែនទេ?")) return;
                 const db = dbRef.current;
-                try {
-                    await window.fb.remove(window.fb.ref(db, `user_chats/${currentUser.uid}/${partnerId}`));
-                } catch (e) {
-                    console.error(e);
+
+                if (chat.type === 'direct') {
+                    if (!window.confirm("តើអ្នកចង់លុបការសន្ទនានេះចេញពីបញ្ជីមែនទេ?")) return;
+                    try {
+                        await window.fb.remove(window.fb.ref(db, `user_chats/${currentUser.uid}/${chat.id}`));
+                    } catch (e) { console.error(e); }
+                } else if (chat.type === 'group') {
+                    if (chat.owner === currentUser.uid) {
+                        if (!window.confirm("តើអ្នកពិតជាចង់លុបក្រុមនេះមែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។")) return;
+                        try {
+                            // Remove group data
+                            await window.fb.remove(window.fb.ref(db, `groups/${chat.id}`));
+                            await window.fb.remove(window.fb.ref(db, `messages/${chat.id}`));
+                            if(chat.inviteCode) await window.fb.remove(window.fb.ref(db, `group_invites/${chat.inviteCode}`));
+                            // User groups will auto-update on next fetch or we can force clean, but simple remove is enough as list filters nulls
+                        } catch (e) { alert("មានបញ្ហាក្នុងការលុបក្រុម។"); }
+                    } else {
+                        if (!window.confirm("តើអ្នកចង់ចាកចេញពីក្រុមនេះមែនទេ?")) return;
+                        try {
+                            await window.fb.remove(window.fb.ref(db, `groups/${chat.id}/members/${currentUser.uid}`));
+                            await window.fb.remove(window.fb.ref(db, `user_groups/${currentUser.uid}/${chat.id}`));
+                        } catch (e) { alert("មានបញ្ហាក្នុងការចាកចេញ។"); }
+                    }
                 }
             };
 
-            // --- Chat Handlers ---
             const startChat = (partner) => {
                 const uids = [currentUser.uid, partner.uid].sort();
                 const chatId = `${uids[0]}_${uids[1]}`;
-                setActiveChat({
-                    id: chatId,
-                    type: 'direct',
-                    name: partner.username,
-                    tag: partner.tag,
-                    partnerId: partner.uid
-                });
+                setActiveChat({ id: chatId, type: 'direct', name: partner.username, tag: partner.tag, partnerId: partner.uid });
                 setView('chat');
                 setSearchResult(null);
                 setSearchQuery('');
             };
 
             const startGroupChat = (group) => {
-                setActiveChat({
-                    id: group.id,
-                    type: 'group',
-                    name: group.name,
-                    owner: group.owner,
-                    inviteCode: group.inviteCode
-                });
+                setActiveChat({ id: group.id, type: 'group', name: group.name, owner: group.owner, inviteCode: group.inviteCode });
                 setView('chat');
             };
 
+            // ... Settings Handlers ...
             const fetchGroupSettings = async () => {
                 if (!activeChat || activeChat.type !== 'group') return;
                 const db = dbRef.current;
                 const membersSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/members`));
                 const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/blocked`));
-                
                 const membersList = [];
                 if (membersSnap.exists()) {
-                    const memberIds = Object.keys(membersSnap.val());
-                    for (const mid of memberIds) {
+                    for (const mid of Object.keys(membersSnap.val())) {
                         const userSnap = await window.fb.get(window.fb.ref(db, `users/${mid}`));
                         if (userSnap.exists()) membersList.push({ uid: mid, ...userSnap.val() });
                     }
                 }
-                
                 const blockedList = [];
                 if (blockedSnap.exists()) {
-                    const blockedIds = Object.keys(blockedSnap.val());
-                    for (const bid of blockedIds) {
+                    for (const bid of Object.keys(blockedSnap.val())) {
                         const userSnap = await window.fb.get(window.fb.ref(db, `users/${bid}`));
                         if (userSnap.exists()) blockedList.push({ uid: bid, ...userSnap.val() });
                     }
                 }
-
                 setGroupMembers(membersList);
                 setGroupBlocked(blockedList);
                 setShowSettingsModal(true);
@@ -486,13 +485,10 @@
                     const snap = await window.fb.get(window.fb.ref(db, `usernames/${addMemberQuery.trim()}`));
                     if (!snap.exists()) { alert("រកមិនឃើញ Username នេះទេ។"); return; }
                     const uidToAdd = snap.val();
-                    
                     const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/blocked/${uidToAdd}`));
-                    if (blockedSnap.exists()) { alert("អ្នកប្រើប្រាស់នេះកំពុងជាប់ Block។ សូម Unblock ជាមុនសិន។"); return; }
-
+                    if (blockedSnap.exists()) { alert("អ្នកប្រើប្រាស់នេះកំពុងជាប់ Block។"); return; }
                     await window.fb.set(window.fb.ref(db, `groups/${activeChat.id}/members/${uidToAdd}`), true);
                     await window.fb.set(window.fb.ref(db, `user_groups/${uidToAdd}/${activeChat.id}`), true);
-                    
                     setAddMemberQuery('');
                     fetchGroupSettings();
                     alert("បានបន្ថែមសមាជិក។");
@@ -518,7 +514,7 @@
                 } catch (e) { alert("បរាជ័យ។"); }
             };
 
-            // Message Logic
+            // Chat Message Logic
             useEffect(() => {
                 if (view !== 'chat' || !activeChat || !firebaseReady) return;
                 const db = dbRef.current;
@@ -555,24 +551,15 @@
                             createdAt: timestamp 
                         });
 
-                        // Update Recent Chats for Direct Messages
                         if (activeChat.type === 'direct') {
-                            // My View
                             await window.fb.update(window.fb.ref(db, `user_chats/${currentUser.uid}/${activeChat.partnerId}`), {
-                                name: activeChat.name,
-                                tag: activeChat.tag,
-                                uid: activeChat.partnerId, // Keep uid for restarting chat
-                                lastMsg: text,
-                                timestamp: timestamp
+                                name: activeChat.name, tag: activeChat.tag, uid: activeChat.partnerId, lastMsg: text, timestamp: timestamp
                             });
-                            // Partner View
                             await window.fb.update(window.fb.ref(db, `user_chats/${activeChat.partnerId}/${currentUser.uid}`), {
-                                name: currentUser.username,
-                                tag: currentUser.tag,
-                                uid: currentUser.uid,
-                                lastMsg: text,
-                                timestamp: timestamp
+                                name: currentUser.username, tag: currentUser.tag, uid: currentUser.uid, lastMsg: text, timestamp: timestamp
                             });
+                        } else if (activeChat.type === 'group') {
+                            await window.fb.update(window.fb.ref(db, `groups/${activeChat.id}`), { lastMsg: text, timestamp: timestamp });
                         }
                     }
                 } catch (e) { setInputText(text); }
@@ -615,115 +602,32 @@
             if (view === 'home') {
                 return (
                     <div className="flex flex-col h-full bg-gray-50 max-w-md mx-auto shadow-2xl overflow-hidden relative">
-                        {/* Modals */}
-                        {showPasswordModal && (
-                            <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-                                <div className="bg-white p-6 rounded-2xl w-full max-w-sm shadow-xl modal-content">
-                                    <h3 className="font-bold text-lg text-center mb-4">បង្កើត Password ដើម្បី Logout</h3>
-                                    <input type="password" placeholder="Password ថ្មី..." className="w-full px-4 py-3 rounded-xl border mb-4" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}/>
-                                    <div className="flex gap-2"><button onClick={() => setShowPasswordModal(false)} className="flex-1 py-2 bg-gray-200 rounded-lg">បោះបង់</button><button onClick={savePasswordAndLogout} className="flex-1 py-2 bg-blue-600 text-white rounded-lg">រក្សាទុក & Logout</button></div>
-                                </div>
-                            </div>
-                        )}
-                        {showGroupModal && (
-                            <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-                                <div className="bg-white p-6 rounded-2xl w-full max-w-sm shadow-xl modal-content">
-                                    <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-lg">បង្កើត ឬ ចូលក្រុម</h3><button onClick={() => setShowGroupModal(false)}><XIcon className="w-6 h-6 text-gray-500"/></button></div>
-                                    
-                                    <div className="mb-6">
-                                        <p className="text-sm font-bold text-blue-600 mb-2">បង្កើតក្រុមថ្មី</p>
-                                        <div className="flex gap-2">
-                                            <input type="text" placeholder="ឈ្មោះក្រុម..." className="flex-1 px-3 py-2 border rounded-lg" value={groupName} onChange={(e)=>setGroupName(e.target.value)}/>
-                                            <button onClick={handleCreateGroup} className="bg-blue-600 text-white px-4 rounded-lg text-sm">បង្កើត</button>
-                                        </div>
-                                    </div>
-                                    <div className="border-t pt-4">
-                                        <p className="text-sm font-bold text-green-600 mb-2">ចូលក្រុម (Join)</p>
-                                        <div className="flex gap-2">
-                                            <input type="text" placeholder="លេខកូដក្រុម..." className="flex-1 px-3 py-2 border rounded-lg" value={groupJoinCode} onChange={(e)=>setGroupJoinCode(e.target.value)}/>
-                                            <button onClick={handleJoinGroup} className="bg-green-600 text-white px-4 rounded-lg text-sm">ចូល</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        {showPasswordModal && (<div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><div className="bg-white p-6 rounded-2xl w-full max-w-sm shadow-xl modal-content"><h3 className="font-bold text-lg text-center mb-4">បង្កើត Password ដើម្បី Logout</h3><input type="password" placeholder="Password ថ្មី..." className="w-full px-4 py-3 rounded-xl border mb-4" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}/><div className="flex gap-2"><button onClick={() => setShowPasswordModal(false)} className="flex-1 py-2 bg-gray-200 rounded-lg">បោះបង់</button><button onClick={savePasswordAndLogout} className="flex-1 py-2 bg-blue-600 text-white rounded-lg">រក្សាទុក & Logout</button></div></div></div>)}
+                        {showGroupModal && (<div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><div className="bg-white p-6 rounded-2xl w-full max-w-sm shadow-xl modal-content"><div className="flex justify-between items-center mb-4"><h3 className="font-bold text-lg">បង្កើត ឬ ចូលក្រុម</h3><button onClick={() => setShowGroupModal(false)}><XIcon className="w-6 h-6 text-gray-500"/></button></div><div className="mb-6"><p className="text-sm font-bold text-blue-600 mb-2">បង្កើតក្រុមថ្មី</p><div className="flex gap-2"><input type="text" placeholder="ឈ្មោះក្រុម..." className="flex-1 px-3 py-2 border rounded-lg" value={groupName} onChange={(e)=>setGroupName(e.target.value)}/><button onClick={handleCreateGroup} className="bg-blue-600 text-white px-4 rounded-lg text-sm">បង្កើត</button></div></div><div className="border-t pt-4"><p className="text-sm font-bold text-green-600 mb-2">ចូលក្រុម (Join)</p><div className="flex gap-2"><input type="text" placeholder="លេខកូដក្រុម..." className="flex-1 px-3 py-2 border rounded-lg" value={groupJoinCode} onChange={(e)=>setGroupJoinCode(e.target.value)}/><button onClick={handleJoinGroup} className="bg-green-600 text-white px-4 rounded-lg text-sm">ចូល</button></div></div></div></div>)}
 
-                        {/* Header */}
                         <div className="bg-blue-600 p-6 text-white rounded-b-3xl shadow-md z-10">
-                            <div className="flex justify-between items-start mb-4">
-                                <h1 className="text-2xl font-bold">កម្មវិធីជជែកកម្សាន្ត</h1>
-                                <button onClick={() => (!currentUser.password ? setShowPasswordModal(true) : performLogout())}><LogoutIcon className="w-6 h-6" /></button>
-                            </div>
-                            <div className="flex items-center gap-2 opacity-90 text-sm bg-blue-700 p-2 rounded-lg inline-block">
-                                <UserIcon className="w-4 h-4" /> <span>{currentUser.username}</span>
-                                <span className="font-mono bg-blue-800 px-2 py-0.5 rounded text-xs cursor-pointer" onClick={() => copyToClipboard(currentUser.tag)}>{currentUser.tag}</span>
-                            </div>
+                            <div className="flex justify-between items-start mb-4"><h1 className="text-2xl font-bold">កម្មវិធីជជែកកម្សាន្ត</h1><button onClick={() => (!currentUser.password ? setShowPasswordModal(true) : performLogout())}><LogoutIcon className="w-6 h-6" /></button></div>
+                            <div className="flex items-center gap-2 opacity-90 text-sm bg-blue-700 p-2 rounded-lg inline-block"><UserIcon className="w-4 h-4" /> <span>{currentUser.username}</span><span className="font-mono bg-blue-800 px-2 py-0.5 rounded text-xs cursor-pointer" onClick={() => copyToClipboard(currentUser.tag)}>{currentUser.tag}</span></div>
                         </div>
 
-                        {/* Tabs */}
-                        <div className="flex p-4 gap-4">
-                            <button onClick={() => setActiveTab('chats')} className={`flex-1 py-2 rounded-xl font-bold transition ${activeTab === 'chats' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}>ការសន្ទនា</button>
-                            <button onClick={() => setActiveTab('groups')} className={`flex-1 py-2 rounded-xl font-bold transition ${activeTab === 'groups' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}>ក្រុមរបស់ខ្ញុំ</button>
-                        </div>
+                        <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4">
+                            <form onSubmit={handleSearch} className="flex gap-2 mb-4"><input type="text" placeholder="ស្វែងរក @username..." className="flex-1 px-4 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/><button type="submit" className="bg-blue-600 text-white p-3 rounded-xl shadow-md"><SearchIcon className="w-6 h-6" /></button></form>
+                            <button onClick={() => setShowGroupModal(true)} className="w-full py-3 mb-4 border-2 border-dashed border-blue-300 text-blue-500 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-50">+ បង្កើត ឬ ចូលក្រុមថ្មី</button>
+                            
+                            {searchError && <p className="text-red-500 text-sm bg-red-50 p-2 rounded text-center mb-2">{searchError}</p>}
+                            {searchResult && (<div className="bg-white p-4 rounded-xl shadow flex items-center justify-between mb-4 border-2 border-blue-100"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">{searchResult.username[0]}</div><div><p className="font-bold text-gray-800">{searchResult.username}</p><p className="text-xs text-gray-500">{searchResult.tag}</p></div></div><button onClick={() => startChat(searchResult)} className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-green-600">ជជែក</button></div>)}
 
-                        <div className="flex-1 overflow-y-auto px-4 pb-4">
-                            {activeTab === 'chats' ? (
-                                <div>
-                                    <form onSubmit={handleSearch} className="flex gap-2 mb-4">
-                                        <input type="text" placeholder="ស្វែងរក @username..." className="flex-1 px-4 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/>
-                                        <button type="submit" className="bg-blue-600 text-white p-3 rounded-xl shadow-md"><SearchIcon className="w-6 h-6" /></button>
-                                    </form>
-                                    
-                                    {searchError && <p className="text-red-500 text-sm bg-red-50 p-2 rounded text-center mb-2">{searchError}</p>}
-                                    
-                                    {/* Search Result */}
-                                    {searchResult && (
-                                        <div className="bg-white p-4 rounded-xl shadow flex items-center justify-between mb-4 border-2 border-blue-100">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">{searchResult.username[0]}</div>
-                                                <div><p className="font-bold text-gray-800">{searchResult.username}</p><p className="text-xs text-gray-500">{searchResult.tag}</p></div>
-                                            </div>
-                                            <button onClick={() => startChat(searchResult)} className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-green-600">ជជែក</button>
-                                        </div>
-                                    )}
-
-                                    {/* Recent Chats List */}
-                                    <div className="space-y-2">
-                                        {recentChats.length > 0 && !searchQuery && <p className="text-xs font-bold text-gray-400 mb-2 uppercase">ការសន្ទនាថ្មីៗ</p>}
-                                        {recentChats.map(chat => (
-                                            <div key={chat.partnerId} onClick={() => startChat({uid: chat.partnerId, username: chat.name, tag: chat.tag})} className="bg-white p-3 rounded-xl shadow-sm flex items-center gap-3 cursor-pointer hover:bg-gray-50 transition group relative">
-                                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold">{chat.name[0]}</div>
-                                                <div className="flex-1 overflow-hidden">
-                                                    <div className="flex justify-between items-center">
-                                                        <p className="font-bold text-gray-800 truncate">{chat.name}</p>
-                                                        {chat.timestamp && <span className="text-[10px] text-gray-400">{new Date(chat.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>}
-                                                    </div>
-                                                    <p className="text-xs text-gray-500 truncate">{chat.lastMsg || 'គ្មានសារ'}</p>
-                                                </div>
-                                                <button 
-                                                    onClick={(e) => handleDeleteRecentChat(chat.partnerId, e)}
-                                                    className="opacity-0 group-hover:opacity-100 p-2 text-gray-300 hover:text-red-500 transition"
-                                                    title="លុបការសន្ទនា"
-                                                >
-                                                    <TrashIcon className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                        {recentChats.length === 0 && !searchResult && <div className="text-center text-gray-400 mt-8"><p>មិនទាន់មានការសន្ទនាទេ។</p><p className="text-xs mt-1">ស្វែងរកមិត្តភក្តិដើម្បីចាប់ផ្តើម!</p></div>}
+                            <div className="space-y-2">
+                                {allChats.length > 0 && !searchQuery && <p className="text-xs font-bold text-gray-400 mb-2 uppercase">ការសន្ទនាថ្មីៗ</p>}
+                                {allChats.map(chat => (
+                                    <div key={chat.id} onClick={() => chat.type === 'direct' ? startChat({uid: chat.id, username: chat.name, tag: chat.tag}) : startGroupChat(chat)} className="bg-white p-3 rounded-xl shadow-sm flex items-center gap-3 cursor-pointer hover:bg-gray-50 transition group relative">
+                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${chat.type === 'group' ? 'bg-indigo-500' : 'bg-gray-400'}`}>{chat.type === 'group' ? <UsersIcon className="w-6 h-6"/> : chat.name[0]}</div>
+                                        <div className="flex-1 overflow-hidden"><div className="flex justify-between items-center"><p className="font-bold text-gray-800 truncate">{chat.name}</p>{chat.timestamp && <span className="text-[10px] text-gray-400">{new Date(chat.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>}</div><p className="text-xs text-gray-500 truncate">{chat.lastMsg || 'គ្មានសារ'}</p></div>
+                                        <button onClick={(e) => handleDeleteChatAction(chat, e)} className="opacity-0 group-hover:opacity-100 p-2 text-gray-300 hover:text-red-500 transition" title={chat.type === 'group' ? (chat.owner === currentUser.uid ? "លុបក្រុម" : "ចាកចេញ") : "លុបការសន្ទនា"}>{chat.type === 'group' && chat.owner !== currentUser.uid ? <LeaveIcon className="w-4 h-4" /> : <TrashIcon className="w-4 h-4" />}</button>
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    <button onClick={() => setShowGroupModal(true)} className="w-full py-3 border-2 border-dashed border-blue-300 text-blue-500 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-50">+ បង្កើត ឬ ចូលក្រុមថ្មី</button>
-                                    {myGroups.map(g => (
-                                        <div key={g.id} onClick={() => startGroupChat(g)} className="bg-white p-4 rounded-xl shadow flex items-center gap-3 cursor-pointer hover:bg-gray-50">
-                                            <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center"><UsersIcon className="w-6 h-6"/></div>
-                                            <div><p className="font-bold text-gray-800">{g.name}</p><p className="text-xs text-gray-500">Code: {g.inviteCode}</p></div>
-                                        </div>
-                                    ))}
-                                    {myGroups.length === 0 && <p className="text-center text-gray-400 mt-4">មិនទាន់មានក្រុមទេ។</p>}
-                                </div>
-                            )}
+                                ))}
+                                {allChats.length === 0 && !searchResult && <div className="text-center text-gray-400 mt-8"><p>មិនទាន់មានការសន្ទនាទេ។</p></div>}
+                            </div>
                         </div>
                     </div>
                 );
@@ -733,119 +637,10 @@
                 const isOwner = activeChat.type === 'group' && activeChat.owner === currentUser.uid;
                 return (
                     <div className="flex flex-col h-full bg-gray-100 font-battambang max-w-md mx-auto shadow-2xl relative">
-                        {/* Settings Modal */}
-                        {showSettingsModal && (
-                            <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-                                <div className="bg-white p-4 rounded-2xl w-full max-w-sm shadow-xl modal-content h-[80vh] flex flex-col">
-                                    <div className="flex justify-between items-center mb-4 border-b pb-2">
-                                        <h3 className="font-bold text-lg">ការកំណត់ក្រុម: {activeChat.name}</h3>
-                                        <button onClick={() => setShowSettingsModal(false)}><XIcon className="w-6 h-6 text-gray-500"/></button>
-                                    </div>
-                                    
-                                    <div className="mb-4 bg-blue-50 p-3 rounded-lg">
-                                        <p className="text-xs text-gray-500 uppercase">លេខកូដក្រុម</p>
-                                        <div className="flex justify-between items-center font-mono font-bold text-blue-700">
-                                            {activeChat.inviteCode}
-                                            <button onClick={() => copyToClipboard(activeChat.inviteCode)}><CopyIcon className="w-4 h-4"/></button>
-                                        </div>
-                                    </div>
-
-                                    <div className="mb-4">
-                                        <p className="text-sm font-bold mb-2">បន្ថែមសមាជិក</p>
-                                        <div className="flex gap-2">
-                                            <input type="text" placeholder="@username..." className="flex-1 px-3 py-2 border rounded-lg" value={addMemberQuery} onChange={(e)=>setAddMemberQuery(e.target.value)}/>
-                                            <button onClick={handleAddMember} className="bg-blue-600 text-white px-3 rounded-lg text-sm">បន្ថែម</button>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex-1 overflow-y-auto mb-4">
-                                        <p className="text-sm font-bold mb-2">សមាជិក ({groupMembers.length})</p>
-                                        <div className="space-y-2 mb-4">
-                                            {groupMembers.map(m => (
-                                                <div key={m.uid} className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                                                    <span className="text-sm">{m.username} <span className="text-xs text-gray-400">{m.tag}</span></span>
-                                                    {m.uid !== currentUser.uid && (
-                                                        <button onClick={() => handleRemoveMember(m.uid)} className="text-red-500 bg-red-100 p-1 rounded"><UserMinusIcon className="w-4 h-4"/></button>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        {groupBlocked.length > 0 && (
-                                            <div>
-                                                <p className="text-sm font-bold mb-2 text-red-600">អ្នកដែលត្រូវបាន Block</p>
-                                                <div className="space-y-2">
-                                                    {groupBlocked.map(b => (
-                                                        <div key={b.uid} className="flex justify-between items-center bg-red-50 p-2 rounded border border-red-100">
-                                                            <span className="text-sm text-gray-600">{b.username}</span>
-                                                            <button onClick={() => handleUnblockMember(b.uid)} className="text-green-600 text-xs font-bold">Unblock</button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Delete Group Button (Owner Only) */}
-                                    {isOwner && (
-                                        <div className="pt-2 border-t">
-                                            <button onClick={handleDeleteGroup} className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition flex items-center justify-center gap-2">
-                                                <TrashIcon className="w-5 h-5" /> លុបក្រុមចោល
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="bg-white p-4 shadow-sm flex items-center gap-3 z-20">
-                            <button onClick={() => { setView('home'); setMessages([]); setActiveChat(null); setShowSettingsModal(false); }} className="text-gray-600 hover:bg-gray-100 p-2 rounded-full"><ArrowLeftIcon className="w-6 h-6" /></button>
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg ${activeChat.type === 'group' ? 'bg-indigo-500' : 'bg-gradient-to-br from-green-400 to-blue-500'}`}>
-                                {activeChat.type === 'group' ? <UsersIcon className="w-5 h-5" /> : activeChat.name[0]}
-                            </div>
-                            <div className="flex-1">
-                                <h2 className="font-bold text-gray-800">{activeChat.name}</h2>
-                                <p className="text-xs text-gray-500">{activeChat.type === 'group' ? 'Group Chat' : activeChat.tag}</p>
-                            </div>
-                            {isOwner && (
-                                <button onClick={fetchGroupSettings} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"><SettingsIcon className="w-6 h-6" /></button>
-                            )}
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-100" onClick={() => setMobileDeleteId(null)}>
-                            {messages.map((msg) => {
-                                const isMe = msg.senderId === currentUser.uid;
-                                const showDelete = mobileDeleteId === msg.id;
-                                return (
-                                    <div key={msg.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} group relative items-center`}>
-                                        <div className={`flex items-center gap-2 max-w-[85%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                                            {isMe && <button onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg.id); }} className={`p-2 rounded-full bg-white shadow text-red-500 ${showDelete ? 'opacity-100 scale-100' : 'opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 hidden group-hover:block'}`}><TrashIcon className="w-4 h-4" /></button>}
-                                            <div className="flex flex-col">
-                                                {!isMe && activeChat.type === 'group' && <span className="text-[10px] text-gray-500 ml-2 mb-1">{msg.senderName}</span>}
-                                                <div 
-                                                    onTouchStart={() => isMe && handleTouchStart(msg.id)} 
-                                                    onTouchEnd={() => isMe && handleTouchEnd(msg)} 
-                                                    onClick={(e) => { if (window.matchMedia("(hover: hover)").matches && isMe) { e.stopPropagation(); handleClick(msg); } }} 
-                                                    className={`px-4 py-2 rounded-2xl break-words shadow-sm text-sm cursor-pointer select-none message-bubble relative ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none'} ${editingMessageId === msg.id ? 'ring-2 ring-yellow-400' : ''}`}
-                                                >
-                                                    {msg.text}
-                                                    {msg.updatedAt && <span className="text-[10px] opacity-70 block text-right italic mt-1">បានកែ</span>}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                            <div ref={messagesEndRef} />
-                        </div>
-
-                        <div className="bg-white p-3 border-t z-30">
-                            {editingMessageId && <div className="flex justify-between items-center bg-yellow-50 px-3 py-1 mb-2 rounded text-xs text-yellow-700"><span>កំពុងកែប្រែសារ...</span><button onClick={() => { setEditingMessageId(null); setInputText(''); }}><XIcon className="w-4 h-4" /></button></div>}
-                            <form onSubmit={handleSendMessage} className="flex gap-2">
-                                <input ref={inputRef} type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="សរសេរសារ..." className="flex-1 px-4 py-3 bg-gray-100 rounded-full focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition" />
-                                <button disabled={!inputText.trim()} type="submit" className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 shadow-lg">{editingMessageId ? <CheckIcon className="w-5 h-5"/> : <SendIcon className="w-5 h-5"/>}</button>
-                            </form>
-                        </div>
+                        {showSettingsModal && (<div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><div className="bg-white p-4 rounded-2xl w-full max-w-sm shadow-xl modal-content h-[80vh] flex flex-col"><div className="flex justify-between items-center mb-4 border-b pb-2"><h3 className="font-bold text-lg">ការកំណត់ក្រុម: {activeChat.name}</h3><button onClick={() => setShowSettingsModal(false)}><XIcon className="w-6 h-6 text-gray-500"/></button></div><div className="mb-4 bg-blue-50 p-3 rounded-lg"><p className="text-xs text-gray-500 uppercase">លេខកូដក្រុម</p><div className="flex justify-between items-center font-mono font-bold text-blue-700">{activeChat.inviteCode}<button onClick={() => copyToClipboard(activeChat.inviteCode)}><CopyIcon className="w-4 h-4"/></button></div></div><div className="mb-4"><p className="text-sm font-bold mb-2">បន្ថែមសមាជិក</p><div className="flex gap-2"><input type="text" placeholder="@username..." className="flex-1 px-3 py-2 border rounded-lg" value={addMemberQuery} onChange={(e)=>setAddMemberQuery(e.target.value)}/><button onClick={handleAddMember} className="bg-blue-600 text-white px-3 rounded-lg text-sm">បន្ថែម</button></div></div><div className="flex-1 overflow-y-auto mb-4"><p className="text-sm font-bold mb-2">សមាជិក ({groupMembers.length})</p><div className="space-y-2 mb-4">{groupMembers.map(m => (<div key={m.uid} className="flex justify-between items-center bg-gray-50 p-2 rounded"><span className="text-sm">{m.username} <span className="text-xs text-gray-400">{m.tag}</span></span>{m.uid !== currentUser.uid && (<button onClick={() => handleRemoveMember(m.uid)} className="text-red-500 bg-red-100 p-1 rounded"><UserMinusIcon className="w-4 h-4"/></button>)}</div>))}</div>{groupBlocked.length > 0 && (<div><p className="text-sm font-bold mb-2 text-red-600">អ្នកដែលត្រូវបាន Block</p><div className="space-y-2">{groupBlocked.map(b => (<div key={b.uid} className="flex justify-between items-center bg-red-50 p-2 rounded border border-red-100"><span className="text-sm text-gray-600">{b.username}</span><button onClick={() => handleUnblockMember(b.uid)} className="text-green-600 text-xs font-bold">Unblock</button></div>))}</div></div>)}</div>{isOwner && (<div className="pt-2 border-t"><button onClick={() => handleDeleteChatAction(activeChat, {stopPropagation:()=>{}})} className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition flex items-center justify-center gap-2"><TrashIcon className="w-5 h-5" /> លុបក្រុមចោល</button></div>)}</div></div>)}
+                        <div className="bg-white p-4 shadow-sm flex items-center gap-3 z-20"><button onClick={() => { setView('home'); setMessages([]); setActiveChat(null); setShowSettingsModal(false); }} className="text-gray-600 hover:bg-gray-100 p-2 rounded-full"><ArrowLeftIcon className="w-6 h-6" /></button><div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg ${activeChat.type === 'group' ? 'bg-indigo-500' : 'bg-gradient-to-br from-green-400 to-blue-500'}`}>{activeChat.type === 'group' ? <UsersIcon className="w-5 h-5" /> : activeChat.name[0]}</div><div className="flex-1"><h2 className="font-bold text-gray-800">{activeChat.name}</h2><p className="text-xs text-gray-500">{activeChat.type === 'group' ? 'Group Chat' : activeChat.tag}</p></div>{isOwner && <button onClick={fetchGroupSettings} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"><SettingsIcon className="w-6 h-6" /></button>}</div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-100" onClick={() => setMobileDeleteId(null)}>{messages.map((msg) => { const isMe = msg.senderId === currentUser.uid; const showDelete = mobileDeleteId === msg.id; return (<div key={msg.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} group relative items-center`}><div className={`flex items-center gap-2 max-w-[85%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>{isMe && <button onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg.id); }} className={`p-2 rounded-full bg-white shadow text-red-500 ${showDelete ? 'opacity-100 scale-100' : 'opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 hidden group-hover:block'}`}><TrashIcon className="w-4 h-4" /></button>}<div className="flex flex-col">{!isMe && activeChat.type === 'group' && <span className="text-[10px] text-gray-500 ml-2 mb-1">{msg.senderName}</span>}<div onTouchStart={() => isMe && handleTouchStart(msg.id)} onTouchEnd={() => isMe && handleTouchEnd(msg)} onClick={(e) => { if (window.matchMedia("(hover: hover)").matches && isMe) { e.stopPropagation(); handleClick(msg); } }} className={`px-4 py-2 rounded-2xl break-words shadow-sm text-sm cursor-pointer select-none message-bubble relative ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none'} ${editingMessageId === msg.id ? 'ring-2 ring-yellow-400' : ''}`}>{msg.text}{msg.updatedAt && <span className="text-[10px] opacity-70 block text-right italic mt-1">បានកែ</span>}</div></div></div></div>); })}<div ref={messagesEndRef} /></div>
+                        <div className="bg-white p-3 border-t z-30">{editingMessageId && <div className="flex justify-between items-center bg-yellow-50 px-3 py-1 mb-2 rounded text-xs text-yellow-700"><span>កំពុងកែប្រែសារ...</span><button onClick={() => { setEditingMessageId(null); setInputText(''); }}><XIcon className="w-4 h-4" /></button></div>}<form onSubmit={handleSendMessage} className="flex gap-2"><input ref={inputRef} type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="សរសេរសារ..." className="flex-1 px-4 py-3 bg-gray-100 rounded-full focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition" /><button disabled={!inputText.trim()} type="submit" className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 shadow-lg">{editingMessageId ? <CheckIcon className="w-5 h-5"/> : <SendIcon className="w-5 h-5"/>}</button></form></div>
                     </div>
                 );
             }

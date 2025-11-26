@@ -32,6 +32,9 @@
         audio { height: 40px; border-radius: 20px; }
         /* Video max height */
         video { max-height: 300px; object-fit: contain; background: #000; }
+        
+        /* Input transition */
+        .input-area-transition { transition: all 0.3s ease; }
     </style>
 </head>
 <body class="bg-gray-100 h-screen overflow-hidden">
@@ -76,11 +79,46 @@
         const VideoIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>);
         const MicIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>);
         const StopCircleIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><rect x="9" y="9" width="6" height="6"></rect></svg>);
+        const PlusCircleIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>);
+
+        function LoginView({ onRegister, onLogin }) {
+            const [mode, setMode] = useState('register'); 
+            const [name, setName] = useState('');
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+
+            return (
+                <div className="flex items-center justify-center h-full bg-gray-50 p-4">
+                    <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm text-center">
+                        <div className="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"><svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg></div>
+                        <div className="flex bg-gray-100 rounded-lg p-1 mb-6"><button onClick={() => setMode('register')} className={`flex-1 py-2 rounded-md text-sm font-bold transition ${mode === 'register' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}>ចុះឈ្មោះ</button><button onClick={() => setMode('login')} className={`flex-1 py-2 rounded-md text-sm font-bold transition ${mode === 'login' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}>ចូលប្រើ</button></div>
+                        {mode === 'register' ? (
+                            <form onSubmit={(e) => { e.preventDefault(); onRegister(name); }}>
+                                <h1 className="text-xl font-bold text-gray-800 mb-2">បង្កើតគណនីថ្មី</h1>
+                                <p className="text-gray-500 mb-6 text-sm">បញ្ចូលឈ្មោះរបស់អ្នកដើម្បីចាប់ផ្តើម</p>
+                                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="ឈ្មោះរបស់អ្នក..." className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none transition" autoFocus />
+                                <button type="submit" disabled={!name.trim()} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-lg disabled:opacity-50">ស្នើសុំបើកគណនី</button>
+                            </form>
+                        ) : (
+                            <form onSubmit={(e) => { e.preventDefault(); onLogin(name, username, password); }}>
+                                <h1 className="text-xl font-bold text-gray-800 mb-2">ចូលប្រើគណនី</h1>
+                                <p className="text-gray-500 mb-6 text-sm">បញ្ចូលឈ្មោះ និង Username</p>
+                                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="ឈ្មោះ..." className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl mb-3 focus:ring-2 focus:ring-blue-500 outline-none transition" />
+                                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username (@...)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl mb-3 focus:ring-2 focus:ring-blue-500 outline-none transition" />
+                                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (ប្រសិនបើចាំបាច់)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none transition" />
+                                <button type="submit" disabled={!name.trim() || !username.trim()} className="w-full bg-green-600 text-white font-bold py-3.5 rounded-xl hover:bg-green-700 transition shadow-lg disabled:opacity-50">ចូលប្រើ</button>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            );
+        }
 
         function App() {
             const [firebaseReady, setFirebaseReady] = useState(false);
             const [view, setView] = useState('loading');
             const [currentUser, setCurrentUser] = useState(null);
+            
             const [directChats, setDirectChats] = useState([]);
             const [myGroupIds, setMyGroupIds] = useState([]);
             const [allGroupsData, setAllGroupsData] = useState({});
@@ -93,7 +131,6 @@
             const [inputText, setInputText] = useState('');
             const [editingMessageId, setEditingMessageId] = useState(null);
             const [mobileDeleteId, setMobileDeleteId] = useState(null);
-            const [isUploading, setIsUploading] = useState(false);
             const [isRecording, setIsRecording] = useState(false);
             const [mediaRecorder, setMediaRecorder] = useState(null);
             const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -105,6 +142,10 @@
             const [groupMembers, setGroupMembers] = useState([]);
             const [groupBlocked, setGroupBlocked] = useState([]);
             const [addMemberQuery, setAddMemberQuery] = useState('');
+            
+            // New UI States
+            const [isInputFocused, setIsInputFocused] = useState(false);
+            const [uploadingItem, setUploadingItem] = useState(null); 
 
             const appRef = useRef(null);
             const dbRef = useRef(null);
@@ -238,15 +279,35 @@
                 }
             };
 
+            // --- Handlers for Media with Telegram Style Upload ---
             const handleFileUpload = async (e, type) => {
                 const file = e.target.files[0];
                 if (!file) return;
-                setIsUploading(true);
+                
+                // 1. Create Preview & Show "Uploading" State Locally
+                const previewUrl = URL.createObjectURL(file);
+                const tempId = 'temp_' + Date.now();
+                
+                setUploadingItem({
+                    id: tempId,
+                    type: type,
+                    fileUrl: previewUrl,
+                    text: type === 'image' ? '📷 រូបភាព' : '🎥 វីដេអូ',
+                    senderId: currentUser.uid,
+                    createdAt: Date.now(),
+                    status: 'uploading'
+                });
+
                 try {
                     const url = await uploadToCloudinary(file, type);
                     await sendMessageWithMedia(url, type);
-                } catch(e) { console.error(e); }
-                finally { setIsUploading(false); e.target.value = null; }
+                    setUploadingItem(null); // Upload finished
+                } catch(e) { 
+                    console.error(e); 
+                    setUploadingItem(null); // Remove uploading state on fail
+                } finally { 
+                    e.target.value = null; 
+                }
             };
 
             const startRecording = async () => {
@@ -257,12 +318,27 @@
                     recorder.ondataavailable = e => chunks.push(e.data);
                     recorder.onstop = async () => {
                         const blob = new Blob(chunks, { type: 'audio/ogg; codecs=opus' });
-                        setIsUploading(true);
+                        
+                        // Preview for Audio
+                        const previewUrl = URL.createObjectURL(blob);
+                        setUploadingItem({
+                            id: 'temp_audio_' + Date.now(),
+                            type: 'audio',
+                            fileUrl: previewUrl,
+                            text: '🎤 សំឡេង',
+                            senderId: currentUser.uid,
+                            createdAt: Date.now(),
+                            status: 'uploading'
+                        });
+
                         try {
                             const url = await uploadToCloudinary(blob, 'video'); 
                             await sendMessageWithMedia(url, 'audio');
-                        } catch (e) { console.error(e); }
-                        finally { setIsUploading(false); }
+                            setUploadingItem(null);
+                        } catch (e) { 
+                            console.error(e);
+                            setUploadingItem(null);
+                        }
                     };
                     recorder.start();
                     setMediaRecorder(recorder);
@@ -578,7 +654,7 @@
                 });
                 return () => unsubscribe();
             }, [view, activeChat, firebaseReady]);
-            useEffect(() => { if(view === 'chat') messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, view]);
+            useEffect(() => { if(view === 'chat') messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, view, uploadingItem]);
 
 
             // --- Views ---
@@ -625,9 +701,6 @@
                         <input type="file" accept="image/*" className="hidden" ref={imageInputRef} onChange={(e) => handleFileUpload(e, 'image')} />
                         <input type="file" accept="video/*" className="hidden" ref={videoInputRef} onChange={(e) => handleFileUpload(e, 'video')} />
 
-                        {/* Loading Overlay */}
-                        {isUploading && <div className="absolute inset-0 z-50 bg-black/30 flex flex-col items-center justify-center"><Loader2Icon className="w-10 h-10 animate-spin text-white"/><p className="text-white mt-2 font-bold">កំពុងបង្ហោះ...</p></div>}
-
                         {showSettingsModal && (<div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><div className="bg-white p-4 rounded-2xl w-full max-w-sm shadow-xl modal-content h-[80vh] flex flex-col"><div className="flex justify-between items-center mb-4 border-b pb-2"><h3 className="font-bold text-lg">ការកំណត់ក្រុម: {activeChat.name}</h3><button onClick={() => setShowSettingsModal(false)}><XIcon className="w-6 h-6 text-gray-500"/></button></div><div className="mb-4 bg-blue-50 p-3 rounded-lg"><p className="text-xs text-gray-500 uppercase">លេខកូដក្រុម</p><div className="flex justify-between items-center font-mono font-bold text-blue-700">{activeChat.inviteCode}<button onClick={() => copyToClipboard(activeChat.inviteCode)}><CopyIcon className="w-4 h-4"/></button></div></div><div className="mb-4"><p className="text-sm font-bold mb-2">បន្ថែមសមាជិក</p><div className="flex gap-2"><input type="text" placeholder="@username..." className="flex-1 px-3 py-2 border rounded-lg" value={addMemberQuery} onChange={(e)=>setAddMemberQuery(e.target.value)}/><button onClick={handleAddMember} className="bg-blue-600 text-white px-3 rounded-lg text-sm">បន្ថែម</button></div></div><div className="flex-1 overflow-y-auto mb-4"><p className="text-sm font-bold mb-2">សមាជិក ({groupMembers.length})</p><div className="space-y-2 mb-4">{groupMembers.map(m => (<div key={m.uid} className="flex justify-between items-center bg-gray-50 p-2 rounded"><span className="text-sm">{m.username} <span className="text-xs text-gray-400">{m.tag}</span></span>{m.uid !== currentUser.uid && (<button onClick={() => handleRemoveMember(m.uid)} className="text-red-500 bg-red-100 p-1 rounded"><UserMinusIcon className="w-4 h-4"/></button>)}</div>))}</div>{groupBlocked.length > 0 && (<div><p className="text-sm font-bold mb-2 text-red-600">អ្នកដែលត្រូវបាន Block</p><div className="space-y-2">{groupBlocked.map(b => (<div key={b.uid} className="flex justify-between items-center bg-red-50 p-2 rounded border border-red-100"><span className="text-sm text-gray-600">{b.username}</span><button onClick={() => handleUnblockMember(b.uid)} className="text-green-600 text-xs font-bold">Unblock</button></div>))}</div></div>)}</div>{isOwner && (<div className="pt-2 border-t"><button onClick={() => handleDeleteChatAction(activeChat, {stopPropagation:()=>{}})} className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition flex items-center justify-center gap-2"><TrashIcon className="w-5 h-5" /> លុបក្រុមចោល</button></div>)}</div></div>)}
                         
                         <div className="bg-white p-3 shadow-sm flex items-center gap-3 z-20"><button onClick={() => { setView('home'); setMessages([]); setActiveChat(null); setShowSettingsModal(false); }} className="text-gray-600 hover:bg-gray-100 p-2 rounded-full"><ArrowLeftIcon className="w-6 h-6" /></button><div className={`w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold text-lg ${activeChat.type === 'group' ? 'bg-indigo-500' : 'bg-gradient-to-br from-green-400 to-blue-500'}`}>{activeChat.type === 'group' ? <UsersIcon className="w-5 h-5" /> : activeChat.name[0]}</div><div className="flex-1 overflow-hidden"><h2 className="font-bold text-gray-800 truncate">{activeChat.name}</h2><p className="text-xs text-gray-500 truncate">{activeChat.type === 'group' ? 'Group Chat' : activeChat.tag}</p></div>{isOwner && <button onClick={fetchGroupSettings} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"><SettingsIcon className="w-6 h-6" /></button>}</div>
@@ -664,6 +737,30 @@
                                     </div>
                                 ); 
                             })}
+                            
+                            {/* Local Uploading Preview Bubble */}
+                            {uploadingItem && (
+                                <div className="flex w-full justify-end group relative items-center">
+                                    <div className="flex items-end gap-2 max-w-[85%] sm:max-w-[70%] flex-row-reverse">
+                                        <div className="flex flex-col">
+                                            <div className="px-2 py-2 rounded-2xl shadow-sm text-sm select-none message-bubble relative overflow-hidden bg-blue-600 text-white rounded-tr-none">
+                                                <div className="relative">
+                                                    {uploadingItem.type === 'image' ? (
+                                                        <img src={uploadingItem.fileUrl} className="rounded-lg max-h-60 object-cover opacity-60" />
+                                                    ) : uploadingItem.type === 'video' ? (
+                                                        <video src={uploadingItem.fileUrl} className="rounded-lg max-h-60 w-full opacity-60" />
+                                                    ) : (
+                                                        <div className="flex items-center justify-center h-12 w-40 opacity-60"><MicIcon className="w-6 h-6" /></div>
+                                                    )}
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <Loader2Icon className="w-8 h-8 animate-spin text-white" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             <div ref={messagesEndRef} />
                         </div>
 
@@ -680,11 +777,27 @@
                                 </div>
                             ) : (
                                 <div className="flex gap-2 items-center">
-                                    <button onClick={() => imageInputRef.current.click()} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full flex-shrink-0"><ImageIcon className="w-6 h-6"/></button>
-                                    <button onClick={() => videoInputRef.current.click()} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full flex-shrink-0"><VideoIcon className="w-6 h-6"/></button>
-                                    <button onClick={startRecording} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full flex-shrink-0"><MicIcon className="w-6 h-6"/></button>
+                                    {/* Hide Icons when focused, Show Plus to bring back */}
+                                    {!isInputFocused ? (
+                                        <>
+                                            <button onClick={() => imageInputRef.current.click()} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full flex-shrink-0"><ImageIcon className="w-6 h-6"/></button>
+                                            <button onClick={() => videoInputRef.current.click()} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full flex-shrink-0"><VideoIcon className="w-6 h-6"/></button>
+                                            <button onClick={startRecording} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full flex-shrink-0"><MicIcon className="w-6 h-6"/></button>
+                                        </>
+                                    ) : (
+                                        <button onClick={() => setIsInputFocused(false)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-full flex-shrink-0"><PlusCircleIcon className="w-7 h-7"/></button>
+                                    )}
+                                    
                                     <form onSubmit={handleSendMessage} className="flex-1 flex gap-2">
-                                        <input ref={inputRef} type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="សរសេរសារ..." className="flex-1 px-4 py-3 bg-gray-100 rounded-full focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition min-w-0" />
+                                        <input 
+                                            ref={inputRef} 
+                                            type="text" 
+                                            value={inputText} 
+                                            onChange={(e) => setInputText(e.target.value)} 
+                                            placeholder="សរសេរសារ..." 
+                                            className="flex-1 px-4 py-3 bg-gray-100 rounded-full focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition min-w-0"
+                                            onFocus={() => setIsInputFocused(true)}
+                                        />
                                         <button disabled={!inputText.trim()} type="submit" className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 shadow-lg flex-shrink-0">{editingMessageId ? <CheckIcon className="w-5 h-5"/> : <SendIcon className="w-5 h-5"/>}</button>
                                     </form>
                                 </div>
@@ -694,39 +807,6 @@
                 );
             }
             return null;
-        }
-
-        function LoginView({ onRegister, onLogin }) {
-            const [mode, setMode] = useState('register'); 
-            const [name, setName] = useState('');
-            const [username, setUsername] = useState('');
-            const [password, setPassword] = useState('');
-
-            return (
-                <div className="flex items-center justify-center h-full bg-gray-50 p-4">
-                    <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm text-center">
-                        <div className="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"><svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg></div>
-                        <div className="flex bg-gray-100 rounded-lg p-1 mb-6"><button onClick={() => setMode('register')} className={`flex-1 py-2 rounded-md text-sm font-bold transition ${mode === 'register' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}>ចុះឈ្មោះ</button><button onClick={() => setMode('login')} className={`flex-1 py-2 rounded-md text-sm font-bold transition ${mode === 'login' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}>ចូលប្រើ</button></div>
-                        {mode === 'register' ? (
-                            <form onSubmit={(e) => { e.preventDefault(); onRegister(name); }}>
-                                <h1 className="text-xl font-bold text-gray-800 mb-2">បង្កើតគណនីថ្មី</h1>
-                                <p className="text-gray-500 mb-6 text-sm">បញ្ចូលឈ្មោះរបស់អ្នកដើម្បីចាប់ផ្តើម</p>
-                                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="ឈ្មោះរបស់អ្នក..." className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none transition" autoFocus />
-                                <button type="submit" disabled={!name.trim()} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-lg disabled:opacity-50">ស្នើសុំបើកគណនី</button>
-                            </form>
-                        ) : (
-                            <form onSubmit={(e) => { e.preventDefault(); onLogin(name, username, password); }}>
-                                <h1 className="text-xl font-bold text-gray-800 mb-2">ចូលប្រើគណនី</h1>
-                                <p className="text-gray-500 mb-6 text-sm">បញ្ចូលឈ្មោះ និង Username</p>
-                                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="ឈ្មោះ..." className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl mb-3 focus:ring-2 focus:ring-blue-500 outline-none transition" />
-                                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username (@...)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl mb-3 focus:ring-2 focus:ring-blue-500 outline-none transition" />
-                                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (ប្រសិនបើចាំបាច់)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 outline-none transition" />
-                                <button type="submit" disabled={!name.trim() || !username.trim()} className="w-full bg-green-600 text-white font-bold py-3.5 rounded-xl hover:bg-green-700 transition shadow-lg disabled:opacity-50">ចូលប្រើ</button>
-                            </form>
-                        )}
-                    </div>
-                </div>
-            );
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));

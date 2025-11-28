@@ -165,6 +165,8 @@
             const [showProfileModal, setShowProfileModal] = useState(false);
             const [isUploadingProfile, setIsUploadingProfile] = useState(false);
             const [showCallModal, setShowCallModal] = useState(null);
+            const [showSeenByModal, setShowSeenByModal] = useState(false);
+            const [seenByUsers, setSeenByUsers] = useState([]);
 
             const [groupName, setGroupName] = useState('');
             const [groupJoinCode, setGroupJoinCode] = useState('');
@@ -589,12 +591,32 @@
                 setActiveReactionId(null); // Close after reacting
             };
 
+            const handleShowSeenBy = async (seenUids) => {
+                const db = dbRef.current;
+                const users = [];
+                for (const uid of seenUids) {
+                    try {
+                        const snap = await window.fb.get(window.fb.ref(db, `users/${uid}`));
+                        if(snap.exists()) {
+                            users.push({ uid, ...snap.val() });
+                        }
+                    } catch(e) { console.error(e); }
+                }
+                setSeenByUsers(users);
+                setShowSeenByModal(true);
+            };
+
             const getSeenInfo = (msg) => {
                 if (!msg.seenBy) return null;
                 const seenUids = Object.keys(msg.seenBy).filter(uid => uid !== currentUser.uid);
                 if (seenUids.length === 0) return null;
                 if (activeChat.type === 'direct') return seenUids.includes(activeChat.partnerId) ? <CheckDoubleIcon className="w-4 h-4 text-blue-500" /> : null;
-                else return (<div className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer" onClick={() => alert("Seen by: " + seenUids.length + " members")}><EyeIcon className="w-3 h-3"/> {seenUids.length}</div>);
+                else return (
+                    <div className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer hover:text-blue-500" 
+                         onClick={(e) => { e.stopPropagation(); handleShowSeenBy(seenUids); }}>
+                        <EyeIcon className="w-3 h-3"/> {seenUids.length}
+                    </div>
+                );
             };
 
             const handleSearch = async (e) => {
@@ -794,6 +816,27 @@
                                 <h2 className="text-2xl font-bold mb-2">{activeChat.name}</h2>
                                 <p className="text-gray-400 mb-12 animate-pulse">{showCallModal === 'audio' ? 'កំពុងហៅសំឡេង...' : 'កំពុងហៅវីដេអូ...'}</p>
                                 <button onClick={() => setShowCallModal(null)} className="p-4 bg-red-600 rounded-full hover:bg-red-700 shadow-lg transform transition active:scale-95"><PhoneOffIcon className="w-8 h-8" /></button>
+                            </div>
+                        )}
+
+                        {showSeenByModal && (
+                            <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                                <div className="bg-white p-4 rounded-2xl w-full max-w-sm shadow-xl modal-content h-[50vh] flex flex-col">
+                                    <div className="flex justify-between items-center mb-4 border-b pb-2">
+                                        <h3 className="font-bold text-lg">អ្នកបានមើល ({seenByUsers.length})</h3>
+                                        <button onClick={() => setShowSeenByModal(false)}><XIcon className="w-6 h-6 text-gray-500"/></button>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto">
+                                        {seenByUsers.map((u, index) => (
+                                            <div key={index} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg">
+                                                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                                                     {u.photoUrl ? <img src={u.photoUrl} className="w-full h-full object-cover"/> : <UserIcon className="w-full h-full p-2"/>}
+                                                </div>
+                                                <span className="font-bold text-gray-800">{u.username}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         )}
 

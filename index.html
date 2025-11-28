@@ -135,6 +135,122 @@
             );
         }
 
+        // --- Incoming Call Component ---
+        function IncomingCallModal({ call, onAnswer, onDecline }) {
+            return (
+                <div className="absolute inset-0 z-50 bg-gray-900/90 flex flex-col items-center justify-center text-white p-4 animate-slideIn">
+                    <div className="w-32 h-32 rounded-full bg-gray-700 flex items-center justify-center mb-6 ripple-effect relative">
+                        {call.caller.photoUrl ? (
+                            <img src={call.caller.photoUrl} className="w-28 h-28 rounded-full object-cover z-10" />
+                        ) : (
+                            <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-500 z-10 flex items-center justify-center"><UserIcon className="w-12 h-12"/></div>
+                        )}
+                    </div>
+                    <h2 className="text-2xl font-bold mb-1">{call.caller.name}</h2>
+                    <p className="text-gray-300 mb-12 animate-pulse">
+                        {call.type === 'video' ? 'កំពុងហៅវីដេអូ...' : 'កំពុងហៅសំឡេង...'} 
+                        {call.target.type === 'group' && <span className="block text-sm mt-1 text-gray-400">ពីក្រុម: {call.target.name}</span>}
+                    </p>
+                    
+                    <div className="flex gap-8">
+                         <button onClick={onDecline} className="flex flex-col items-center gap-2">
+                            <div className="p-4 bg-red-600 rounded-full hover:bg-red-700 shadow-lg transition transform hover:scale-110">
+                                <PhoneOffIcon className="w-8 h-8" />
+                            </div>
+                            <span className="text-sm font-medium">បដិសេធ</span>
+                        </button>
+                        <button onClick={onAnswer} className="flex flex-col items-center gap-2">
+                            <div className="p-4 bg-green-500 rounded-full hover:bg-green-600 shadow-lg transition transform hover:scale-110 animate-bounce">
+                                {call.type === 'video' ? <VideoCallIcon className="w-8 h-8" /> : <PhoneIcon className="w-8 h-8" />}
+                            </div>
+                            <span className="text-sm font-medium">ទទួល</span>
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- Active Call Component ---
+        function ActiveCallModal({ call, currentUser, onEndCall }) {
+            const [cameraOn, setCameraOn] = useState(true);
+            const [micOn, setMicOn] = useState(true);
+            const localVideoRef = useRef(null);
+
+            useEffect(() => {
+                let localStream;
+                const startStream = async () => {
+                    try {
+                        if (call.type === 'video' && cameraOn) {
+                            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                            if (localVideoRef.current) localVideoRef.current.srcObject = localStream;
+                        } else if (micOn) {
+                            // Just audio if video off or audio call
+                             localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        }
+                    } catch(e) { console.error("Stream error", e); }
+                };
+                startStream();
+                return () => { if(localStream) localStream.getTracks().forEach(track => track.stop()); };
+            }, [cameraOn, micOn, call.type]);
+
+            const participants = call.participants ? Object.keys(call.participants).length : 1;
+
+            return (
+                <div className="absolute inset-0 z-50 bg-gray-900 flex flex-col text-white">
+                    {/* Header */}
+                    <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10 bg-gradient-to-b from-black/50 to-transparent">
+                         <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-xs">{call.target.name[0]}</div>
+                            <div>
+                                <h3 className="font-bold text-sm">{call.target.name}</h3>
+                                <p className="text-xs text-gray-300">{call.status === 'active' ? (participants > 1 ? `${participants} នាក់នៅក្នុងការហៅ` : 'កំពុងភ្ជាប់...') : 'កំពុងហៅ...'}</p>
+                            </div>
+                         </div>
+                    </div>
+
+                    {/* Main Video Area (Simulation) */}
+                    <div className="flex-1 flex items-center justify-center relative bg-gray-800 overflow-hidden">
+                         {/* If Video Call, show local camera (Self View) */}
+                         {call.type === 'video' && cameraOn ? (
+                             <video ref={localVideoRef} autoPlay muted playsInline className="absolute inset-0 w-full h-full object-cover" />
+                         ) : (
+                             <div className="flex flex-col items-center">
+                                 <div className="w-24 h-24 rounded-full bg-gray-600 flex items-center justify-center mb-4">
+                                     {call.caller.photoUrl ? <img src={call.caller.photoUrl} className="w-full h-full rounded-full object-cover"/> : <UserIcon className="w-12 h-12"/>}
+                                 </div>
+                                 <p className="text-xl">{call.caller.name}</p>
+                             </div>
+                         )}
+                         
+                         {/* Simulated Remote Video (Placeholder for group) */}
+                         {call.type === 'video' && participants > 1 && (
+                             <div className="absolute top-20 right-4 w-24 h-32 bg-black rounded-lg border border-white/20 flex items-center justify-center">
+                                 <span className="text-xs text-gray-400">អ្នកផ្សេង...</span>
+                             </div>
+                         )}
+                    </div>
+
+                    {/* Controls */}
+                    <div className="p-6 bg-black/40 backdrop-blur-sm flex justify-center items-center gap-6 rounded-t-3xl">
+                        <button onClick={() => setMicOn(!micOn)} className={`p-3 rounded-full transition ${micOn ? 'bg-gray-600 hover:bg-gray-500' : 'bg-white text-black'}`}>
+                            <MicIcon className="w-6 h-6" />
+                        </button>
+                        
+                        {call.type === 'video' && (
+                            <button onClick={() => setCameraOn(!cameraOn)} className={`p-3 rounded-full transition ${cameraOn ? 'bg-gray-600 hover:bg-gray-500' : 'bg-white text-black'}`}>
+                                <VideoCallIcon className="w-6 h-6" />
+                            </button>
+                        )}
+
+                        <button onClick={onEndCall} className="p-4 bg-red-600 rounded-full hover:bg-red-700 shadow-lg transform transition active:scale-95">
+                            <PhoneOffIcon className="w-8 h-8" />
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+
         function App() {
             const [firebaseReady, setFirebaseReady] = useState(false);
             const [view, setView] = useState('loading');
@@ -164,9 +280,12 @@
             const [showSettingsModal, setShowSettingsModal] = useState(false);
             const [showProfileModal, setShowProfileModal] = useState(false);
             const [isUploadingProfile, setIsUploadingProfile] = useState(false);
-            const [showCallModal, setShowCallModal] = useState(null);
             const [showSeenByModal, setShowSeenByModal] = useState(false);
             const [seenByUsers, setSeenByUsers] = useState([]);
+
+            // CALL STATES
+            const [incomingCall, setIncomingCall] = useState(null); // The call object received
+            const [activeCallSession, setActiveCallSession] = useState(null); // The accepted active call
 
             const [groupName, setGroupName] = useState('');
             const [groupJoinCode, setGroupJoinCode] = useState('');
@@ -191,7 +310,6 @@
             const profileImageInputRef = useRef(null);
             const currentPlayingMediaRef = useRef(null);
 
-            // --- Media Playback Logic ---
             const handleMediaPlay = (event) => {
                 const mediaElement = event.target;
                 if (currentPlayingMediaRef.current && currentPlayingMediaRef.current !== mediaElement) {
@@ -200,7 +318,6 @@
                 currentPlayingMediaRef.current = mediaElement;
             };
 
-            // 1. Initialize Firebase
             useEffect(() => {
                 const initFirebase = () => {
                     if (window.fb) {
@@ -241,7 +358,6 @@
                 return () => window.removeEventListener('firebase-ready', initFirebase);
             }, []);
 
-            // 2. Auth Check
             useEffect(() => {
                 if (!firebaseReady) return;
                 const checkAuth = async () => {
@@ -263,7 +379,6 @@
                 checkAuth();
             }, [firebaseReady]);
 
-            // 3. Data Fetching
             useEffect(() => {
                 if (view !== 'home' || !currentUser || !firebaseReady) return;
                 const db = dbRef.current;
@@ -303,431 +418,208 @@
                 setAllChats(merged);
             }, [directChats, myGroupIds, allGroupsData]);
 
+            // --- CALL SIGNALING LISTENER ---
+            useEffect(() => {
+                if (!currentUser || !firebaseReady) return;
+                const db = dbRef.current;
+                const activeCallsRef = window.fb.ref(db, 'active_calls');
+                
+                const unsubscribe = window.fb.onValue(activeCallsRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const calls = snapshot.val();
+                        let foundCall = null;
+                        
+                        // Check if I am a target (direct or group)
+                        Object.keys(calls).forEach(callId => {
+                            const call = { id: callId, ...calls[callId] };
+                            
+                            // Ignore my own initiated calls from incoming check logic (handled by UI state)
+                            // But if I am the caller, I should see the "Active Call" UI if I reloaded or just started it
+                            if (call.caller.uid === currentUser.uid) {
+                                if (activeCallSession?.id !== callId) {
+                                    // I am the caller, ensure I see the active call screen
+                                    setActiveCallSession(call);
+                                }
+                                return;
+                            }
+
+                            // Check if I am in the target group or I am the direct target
+                            const isMyGroup = call.target.type === 'group' && myGroupIds.includes(call.target.id);
+                            const isDirectMe = call.target.type === 'direct' && call.target.id === currentUser.uid;
+
+                            if ((isMyGroup || isDirectMe) && call.status !== 'ended') {
+                                // If I am already a participant, show active screen
+                                if (call.participants && call.participants[currentUser.uid]) {
+                                    if (activeCallSession?.id !== callId) setActiveCallSession(call);
+                                } 
+                                // If not participant and not rejected, show Incoming
+                                else if (!activeCallSession) {
+                                    foundCall = call;
+                                }
+                            }
+                        });
+
+                        if (foundCall) {
+                            setIncomingCall(foundCall);
+                        } else {
+                            setIncomingCall(null);
+                            // If active session ended on server
+                            if (activeCallSession && !calls[activeCallSession.id]) {
+                                setActiveCallSession(null);
+                                alert("ការហៅបានបញ្ចប់");
+                            }
+                        }
+                    } else {
+                        setIncomingCall(null);
+                        if (activeCallSession) {
+                            setActiveCallSession(null);
+                            alert("ការហៅបានបញ្ចប់");
+                        }
+                    }
+                });
+
+                return () => unsubscribe();
+            }, [currentUser, firebaseReady, myGroupIds, activeCallSession]);
+
+
             // --- Handlers ---
+            // ... (Upload handlers same as before) ...
             const uploadToCloudinary = async (file, resourceType = 'auto') => {
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET); 
-                try {
-                    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, { method: 'POST', body: formData });
-                    const data = await res.json();
-                    if(data.error) throw new Error(data.error.message);
-                    return data.secure_url;
-                } catch (error) { alert("បរាជ័យ៖ " + error.message); throw error; }
+                const formData = new FormData(); formData.append('file', file); formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET); 
+                try { const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, { method: 'POST', body: formData }); const data = await res.json(); if(data.error) throw new Error(data.error.message); return data.secure_url; } catch (error) { alert("បរាជ័យ៖ " + error.message); throw error; }
             };
 
             const handleFileUpload = async (e, type) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const previewUrl = URL.createObjectURL(file);
-                const tempId = 'temp_' + Date.now();
+                const file = e.target.files[0]; if (!file) return;
+                const previewUrl = URL.createObjectURL(file); const tempId = 'temp_' + Date.now();
                 setUploadingItem({ id: tempId, type, fileUrl: previewUrl, text: type === 'image' ? '📷 រូបភាព' : '🎥 វីដេអូ', senderId: currentUser.uid, createdAt: Date.now(), status: 'uploading' });
-                try {
-                    const url = await uploadToCloudinary(file, type);
-                    await sendMessageWithMedia(url, type);
-                    setUploadingItem(null); 
-                } catch(e) { setUploadingItem(null); } finally { e.target.value = null; }
+                try { const url = await uploadToCloudinary(file, type); await sendMessageWithMedia(url, type); setUploadingItem(null); } catch(e) { setUploadingItem(null); } finally { e.target.value = null; }
             };
-
-            const handleProfilePhotoUpload = async (e) => {
-                const file = e.target.files[0];
-                if(!file) return;
-                setIsUploadingProfile(true);
-                try {
-                    const url = await uploadToCloudinary(file, 'image');
-                    await window.fb.update(window.fb.ref(dbRef.current, `users/${currentUser.uid}`), { photoUrl: url });
-                    setCurrentUser(prev => ({ ...prev, photoUrl: url }));
-                    alert("បានប្ដូររូប Profile ជោគជ័យ!");
-                } catch(e) { alert("បរាជ័យក្នុងការប្ដូររូប។"); } finally { setIsUploadingProfile(false); e.target.value = null; }
+             
+             const handleProfilePhotoUpload = async (e) => {
+                const file = e.target.files[0]; if(!file) return; setIsUploadingProfile(true);
+                try { const url = await uploadToCloudinary(file, 'image'); await window.fb.update(window.fb.ref(dbRef.current, `users/${currentUser.uid}`), { photoUrl: url }); setCurrentUser(prev => ({ ...prev, photoUrl: url })); alert("បានប្ដូររូប Profile ជោគជ័យ!"); } catch(e) { alert("បរាជ័យក្នុងការប្ដូររូប។"); } finally { setIsUploadingProfile(false); e.target.value = null; }
             };
 
             const handleChangePassword = async () => {
                 if(!newPassword.trim()) { alert("សូមបញ្ចូល Password"); return; }
-                try {
-                    await window.fb.update(window.fb.ref(dbRef.current, `users/${currentUser.uid}`), { password: newPassword });
-                    setNewPassword('');
-                    alert("Password ត្រូវបានផ្លាស់ប្តូរ!");
-                } catch(e) { alert("បរាជ័យ។"); }
+                try { await window.fb.update(window.fb.ref(dbRef.current, `users/${currentUser.uid}`), { password: newPassword }); setNewPassword(''); alert("Password ត្រូវបានផ្លាស់ប្តូរ!"); } catch(e) { alert("បរាជ័យ។"); }
             };
 
-            const startRecording = async () => {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    const recorder = new MediaRecorder(stream);
-                    const chunks = [];
-                    recorder.ondataavailable = e => chunks.push(e.data);
-                    recorder.onstop = async () => {
-                        const blob = new Blob(chunks, { type: 'audio/ogg; codecs=opus' });
-                        const previewUrl = URL.createObjectURL(blob);
-                        setUploadingItem({ id: 'temp_audio_' + Date.now(), type: 'audio', fileUrl: previewUrl, text: '🎤 សំឡេង', senderId: currentUser.uid, createdAt: Date.now(), status: 'uploading' });
-                        try {
-                            const url = await uploadToCloudinary(blob, 'video'); 
-                            await sendMessageWithMedia(url, 'audio');
-                            setUploadingItem(null);
-                        } catch (e) { setUploadingItem(null); }
-                    };
-                    recorder.start();
-                    setMediaRecorder(recorder);
-                    setIsRecording(true);
-                } catch (err) { alert("មិនអាចបើកមីក្រូហ្វូនបានទេ។"); }
-            };
-
+            // ... (Recording, Message Sending, Auth handlers same as before) ...
+             const startRecording = async () => { try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); const recorder = new MediaRecorder(stream); const chunks = []; recorder.ondataavailable = e => chunks.push(e.data); recorder.onstop = async () => { const blob = new Blob(chunks, { type: 'audio/ogg; codecs=opus' }); const previewUrl = URL.createObjectURL(blob); setUploadingItem({ id: 'temp_audio_' + Date.now(), type: 'audio', fileUrl: previewUrl, text: '🎤 សំឡេង', senderId: currentUser.uid, createdAt: Date.now(), status: 'uploading' }); try { const url = await uploadToCloudinary(blob, 'video'); await sendMessageWithMedia(url, 'audio'); setUploadingItem(null); } catch (e) { setUploadingItem(null); } }; recorder.start(); setMediaRecorder(recorder); setIsRecording(true); } catch (err) { alert("មិនអាចបើកមីក្រូហ្វូនបានទេ។"); } };
             const stopRecording = () => { if (mediaRecorder) { mediaRecorder.stop(); setIsRecording(false); setMediaRecorder(null); } };
-
-            const sendMessageWithMedia = async (url, type) => {
-                if (!activeChat) return;
-                const db = dbRef.current;
-                const timestamp = Date.now();
-                const msgText = type === 'image' ? '📷 រូបភាព' : type === 'video' ? '🎥 វីដេអូ' : '🎤 សំឡេង';
-                const msgData = { text: msgText, fileUrl: url, type: type, senderId: currentUser.uid, senderName: currentUser.username, createdAt: timestamp };
-                await window.fb.push(window.fb.ref(db, `messages/${activeChat.id}`), msgData);
-                if (activeChat.type === 'direct') {
-                    await window.fb.update(window.fb.ref(db, `user_chats/${currentUser.uid}/${activeChat.partnerId}`), { lastMsg: msgText, timestamp });
-                    await window.fb.update(window.fb.ref(db, `user_chats/${activeChat.partnerId}/${currentUser.uid}`), { lastMsg: msgText, timestamp });
-                } else {
-                    await window.fb.update(window.fb.ref(db, `groups/${activeChat.id}`), { lastMsg: msgText, timestamp });
-                }
-            };
-
-            const handleSendMessage = async (e) => {
-                e.preventDefault(); if (!inputText.trim() || !activeChat) return;
-                const text = inputText; setInputText(''); const db = dbRef.current; const timestamp = Date.now();
-                try {
-                    if (editingMessageId) {
-                        await window.fb.update(window.fb.ref(db, `messages/${activeChat.id}/${editingMessageId}`), { text: text, updatedAt: timestamp });
-                        setEditingMessageId(null);
-                    } else {
-                        await window.fb.push(window.fb.ref(db, `messages/${activeChat.id}`), { 
-                            text: text, type: 'text', senderId: currentUser.uid, senderName: currentUser.username, createdAt: timestamp 
-                        });
-                        if (activeChat.type === 'direct') {
-                            await window.fb.update(window.fb.ref(db, `user_chats/${currentUser.uid}/${activeChat.partnerId}`), { name: activeChat.name, tag: activeChat.tag, uid: activeChat.partnerId, lastMsg: text, timestamp });
-                            await window.fb.update(window.fb.ref(db, `user_chats/${activeChat.partnerId}/${currentUser.uid}`), { name: currentUser.username, tag: currentUser.tag, uid: currentUser.uid, lastMsg: text, timestamp });
-                        } else if (activeChat.type === 'group') {
-                            await window.fb.update(window.fb.ref(db, `groups/${activeChat.id}`), { lastMsg: text, timestamp });
-                        }
-                    }
-                } catch (e) { setInputText(text); }
-            };
-
-            const handleRegister = async (name) => {
-                if (!name.trim()) return;
-                const db = dbRef.current;
-                const newUid = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-                const cleanName = name.replace(/\s+/g, '').substring(0, 10);
-                const randomSuffix = Math.floor(100 + Math.random() * 900);
-                const newUsername = `@${cleanName}_${randomSuffix}`;
-                const userData = { username: name, tag: newUsername, deviceId: deviceIdRef.current, createdAt: Date.now() };
-                try {
-                    await window.fb.set(window.fb.ref(db, `users/${newUid}`), userData);
-                    await window.fb.set(window.fb.ref(db, `usernames/${newUsername}`), newUid);
-                    localStorage.setItem('chat_app_uid', newUid);
-                    setCurrentUser({ uid: newUid, ...userData });
-                    setView('home');
-                } catch (e) { alert("បរាជ័យក្នុងការបង្កើតគណនី។"); }
-            };
-
-            const handleLogin = async (name, tag, password) => {
-                const db = dbRef.current;
-                try {
-                    const snapshot = await window.fb.get(window.fb.ref(db, `usernames/${tag.trim()}`));
-                    if (!snapshot.exists()) { alert("រកមិនឃើញ Username នេះទេ។"); return; }
-                    const uid = snapshot.val();
-                    const userSnap = await window.fb.get(window.fb.ref(db, `users/${uid}`));
-                    if (!userSnap.exists()) return;
-                    const userData = userSnap.val();
-                    if (userData.username !== name.trim()) { alert("ឈ្មោះមិនត្រឹមត្រូវ។"); return; }
-                    if (userData.deviceId === deviceIdRef.current) {
-                        localStorage.setItem('chat_app_uid', uid);
-                        setCurrentUser({ uid, ...userData });
-                        setView('home');
-                    } else {
-                        if (userData.password) {
-                            if (userData.password === password) {
-                                localStorage.setItem('chat_app_uid', uid);
-                                setCurrentUser({ uid, ...userData });
-                                setView('home');
-                            } else { alert("Password មិនត្រឹមត្រូវ។"); }
-                        } else {
-                            await window.fb.update(window.fb.ref(db, `users/${uid}`), { deviceId: deviceIdRef.current });
-                            localStorage.setItem('chat_app_uid', uid);
-                            setCurrentUser({ uid, ...userData, deviceId: deviceIdRef.current });
-                            setView('home');
-                        }
-                    }
-                } catch (e) { alert("មានបញ្ហា។"); }
-            };
-
-            const savePasswordAndLogout = async () => {
-                if (!newPassword.trim()) return;
-                try {
-                    await window.fb.update(window.fb.ref(dbRef.current, `users/${currentUser.uid}`), { password: newPassword });
-                    setShowPasswordModal(false);
-                    performLogout();
-                } catch (e) { alert("បរាជ័យ។"); }
-            };
-
+            const sendMessageWithMedia = async (url, type) => { if (!activeChat) return; const db = dbRef.current; const timestamp = Date.now(); const msgText = type === 'image' ? '📷 រូបភាព' : type === 'video' ? '🎥 វីដេអូ' : '🎤 សំឡេង'; const msgData = { text: msgText, fileUrl: url, type: type, senderId: currentUser.uid, senderName: currentUser.username, createdAt: timestamp }; await window.fb.push(window.fb.ref(db, `messages/${activeChat.id}`), msgData); if (activeChat.type === 'direct') { await window.fb.update(window.fb.ref(db, `user_chats/${currentUser.uid}/${activeChat.partnerId}`), { lastMsg: msgText, timestamp }); await window.fb.update(window.fb.ref(db, `user_chats/${activeChat.partnerId}/${currentUser.uid}`), { lastMsg: msgText, timestamp }); } else { await window.fb.update(window.fb.ref(db, `groups/${activeChat.id}`), { lastMsg: msgText, timestamp }); } };
+            const handleSendMessage = async (e) => { e.preventDefault(); if (!inputText.trim() || !activeChat) return; const text = inputText; setInputText(''); const db = dbRef.current; const timestamp = Date.now(); try { if (editingMessageId) { await window.fb.update(window.fb.ref(db, `messages/${activeChat.id}/${editingMessageId}`), { text: text, updatedAt: timestamp }); setEditingMessageId(null); } else { await window.fb.push(window.fb.ref(db, `messages/${activeChat.id}`), { text: text, type: 'text', senderId: currentUser.uid, senderName: currentUser.username, createdAt: timestamp }); if (activeChat.type === 'direct') { await window.fb.update(window.fb.ref(db, `user_chats/${currentUser.uid}/${activeChat.partnerId}`), { name: activeChat.name, tag: activeChat.tag, uid: activeChat.partnerId, lastMsg: text, timestamp }); await window.fb.update(window.fb.ref(db, `user_chats/${activeChat.partnerId}/${currentUser.uid}`), { name: currentUser.username, tag: currentUser.tag, uid: currentUser.uid, lastMsg: text, timestamp }); } else if (activeChat.type === 'group') { await window.fb.update(window.fb.ref(db, `groups/${activeChat.id}`), { lastMsg: text, timestamp }); } } } catch (e) { setInputText(text); } };
+            const handleRegister = async (name) => { if (!name.trim()) return; const db = dbRef.current; const newUid = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5); const cleanName = name.replace(/\s+/g, '').substring(0, 10); const randomSuffix = Math.floor(100 + Math.random() * 900); const newUsername = `@${cleanName}_${randomSuffix}`; const userData = { username: name, tag: newUsername, deviceId: deviceIdRef.current, createdAt: Date.now() }; try { await window.fb.set(window.fb.ref(db, `users/${newUid}`), userData); await window.fb.set(window.fb.ref(db, `usernames/${newUsername}`), newUid); localStorage.setItem('chat_app_uid', newUid); setCurrentUser({ uid: newUid, ...userData }); setView('home'); } catch (e) { alert("បរាជ័យក្នុងការបង្កើតគណនី។"); } };
+            const handleLogin = async (name, tag, password) => { const db = dbRef.current; try { const snapshot = await window.fb.get(window.fb.ref(db, `usernames/${tag.trim()}`)); if (!snapshot.exists()) { alert("រកមិនឃើញ Username នេះទេ។"); return; } const uid = snapshot.val(); const userSnap = await window.fb.get(window.fb.ref(db, `users/${uid}`)); if (!userSnap.exists()) return; const userData = userSnap.val(); if (userData.username !== name.trim()) { alert("ឈ្មោះមិនត្រឹមត្រូវ។"); return; } if (userData.deviceId === deviceIdRef.current) { localStorage.setItem('chat_app_uid', uid); setCurrentUser({ uid, ...userData }); setView('home'); } else { if (userData.password) { if (userData.password === password) { localStorage.setItem('chat_app_uid', uid); setCurrentUser({ uid, ...userData }); setView('home'); } else { alert("Password មិនត្រឹមត្រូវ។"); } } else { await window.fb.update(window.fb.ref(db, `users/${uid}`), { deviceId: deviceIdRef.current }); localStorage.setItem('chat_app_uid', uid); setCurrentUser({ uid, ...userData, deviceId: deviceIdRef.current }); setView('home'); } } } catch (e) { alert("មានបញ្ហា។"); } };
+            const savePasswordAndLogout = async () => { if (!newPassword.trim()) return; try { await window.fb.update(window.fb.ref(dbRef.current, `users/${currentUser.uid}`), { password: newPassword }); setShowPasswordModal(false); performLogout(); } catch (e) { alert("បរាជ័យ។"); } };
             const performLogout = () => { localStorage.removeItem('chat_app_uid'); setCurrentUser(null); setActiveChat(null); setMessages([]); setView('login'); };
-
-            const handleCreateGroup = async () => {
-                if (!groupName.trim()) return;
-                const db = dbRef.current;
-                const groupId = 'group_' + Date.now() + Math.random().toString(36).substr(2, 5);
-                const inviteCode = Math.random().toString(36).substr(2, 8).toUpperCase();
-                const timestamp = Date.now();
-                const groupData = { name: groupName, owner: currentUser.uid, inviteCode: inviteCode, createdAt: timestamp, members: { [currentUser.uid]: true }, settings: { viewMembers: true, addMembers: true }, lastMsg: "Group Created", timestamp: timestamp };
-                try {
-                    await window.fb.set(window.fb.ref(db, `groups/${groupId}`), groupData);
-                    await window.fb.set(window.fb.ref(db, `user_groups/${currentUser.uid}/${groupId}`), true);
-                    await window.fb.set(window.fb.ref(db, `group_invites/${inviteCode}`), groupId);
-                    setGroupName(''); setShowGroupModal(false);
-                    alert(`បានបង្កើតក្រុមជោគជ័យ! លេខកូដក្រុម៖ ${inviteCode}`);
-                } catch (e) { alert("បរាជ័យ។"); }
-            };
-
-            const handleJoinGroup = async () => {
-                if (!groupJoinCode.trim()) return;
-                const db = dbRef.current;
-                try {
-                    const codeSnap = await window.fb.get(window.fb.ref(db, `group_invites/${groupJoinCode.trim()}`));
-                    if (!codeSnap.exists()) { alert("លេខកូដមិនត្រឹមត្រូវ។"); return; }
-                    const groupId = codeSnap.val();
-                    const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${groupId}/blocked/${currentUser.uid}`));
-                    if (blockedSnap.exists()) { alert("អ្នកត្រូវបានបិទ (Block) ពីក្រុមនេះ។"); return; }
-                    await window.fb.set(window.fb.ref(db, `groups/${groupId}/members/${currentUser.uid}`), true);
-                    await window.fb.set(window.fb.ref(db, `user_groups/${currentUser.uid}/${groupId}`), true);
-                    setGroupJoinCode(''); setShowGroupModal(false); alert("ចូលក្រុមបានជោគជ័យ!");
-                } catch (e) { alert("មានបញ្ហា។"); }
-            };
-
-            const handleDeleteChatAction = async (chat, e) => {
-                e.stopPropagation();
-                const db = dbRef.current;
-                if (chat.type === 'direct') {
-                    if (!window.confirm("តើអ្នកចង់លុបការសន្ទនានេះចេញពីបញ្ជីមែនទេ?")) return;
-                    try { await window.fb.remove(window.fb.ref(db, `user_chats/${currentUser.uid}/${chat.id}`)); } catch (e) {}
-                } else if (chat.type === 'group') {
-                    if (chat.owner === currentUser.uid) {
-                        if (!window.confirm("តើអ្នកពិតជាចង់លុបក្រុមនេះមែនទេ?")) return;
-                        try {
-                            await window.fb.remove(window.fb.ref(db, `groups/${chat.id}`));
-                            await window.fb.remove(window.fb.ref(db, `messages/${chat.id}`));
-                            if(chat.inviteCode) await window.fb.remove(window.fb.ref(db, `group_invites/${chat.inviteCode}`));
-                        } catch (e) { alert("មានបញ្ហា។"); }
-                    } else {
-                        if (!window.confirm("តើអ្នកចង់ចាកចេញពីក្រុមនេះមែនទេ?")) return;
-                        try {
-                            await window.fb.remove(window.fb.ref(db, `groups/${chat.id}/members/${currentUser.uid}`));
-                            await window.fb.remove(window.fb.ref(db, `user_groups/${currentUser.uid}/${chat.id}`));
-                        } catch (e) { alert("មានបញ្ហា។"); }
-                    }
-                }
-            };
-
-            const startChat = (partner) => {
-                const uids = [currentUser.uid, partner.uid].sort();
-                const chatId = `${uids[0]}_${uids[1]}`;
-                setActiveChat({ id: chatId, type: 'direct', name: partner.username, tag: partner.tag, partnerId: partner.uid });
-                setView('chat'); setSearchResult(null); setSearchQuery('');
-            };
-
-            const startGroupChat = (group) => {
-                setActiveChat({ id: group.id, type: 'group', name: group.name, owner: group.owner, inviteCode: group.inviteCode });
-                setView('chat');
-            };
-
-            const handleDeleteMessage = async (msgId) => {
-                if(window.confirm("លុបសារនេះ?")) {
-                    const db = dbRef.current;
-                    await window.fb.remove(window.fb.ref(db, `messages/${activeChat.id}/${msgId}`));
-                    if(editingMessageId === msgId) { setEditingMessageId(null); setInputText(''); }
-                    setMobileDeleteId(null);
-                }
-            };
+            const handleCreateGroup = async () => { if (!groupName.trim()) return; const db = dbRef.current; const groupId = 'group_' + Date.now() + Math.random().toString(36).substr(2, 5); const inviteCode = Math.random().toString(36).substr(2, 8).toUpperCase(); const timestamp = Date.now(); const groupData = { name: groupName, owner: currentUser.uid, inviteCode: inviteCode, createdAt: timestamp, members: { [currentUser.uid]: true }, settings: { viewMembers: true, addMembers: true }, lastMsg: "Group Created", timestamp: timestamp }; try { await window.fb.set(window.fb.ref(db, `groups/${groupId}`), groupData); await window.fb.set(window.fb.ref(db, `user_groups/${currentUser.uid}/${groupId}`), true); await window.fb.set(window.fb.ref(db, `group_invites/${inviteCode}`), groupId); setGroupName(''); setShowGroupModal(false); alert(`បានបង្កើតក្រុមជោគជ័យ! លេខកូដក្រុម៖ ${inviteCode}`); } catch (e) { alert("បរាជ័យ។"); } };
+            const handleJoinGroup = async () => { if (!groupJoinCode.trim()) return; const db = dbRef.current; try { const codeSnap = await window.fb.get(window.fb.ref(db, `group_invites/${groupJoinCode.trim()}`)); if (!codeSnap.exists()) { alert("លេខកូដមិនត្រឹមត្រូវ។"); return; } const groupId = codeSnap.val(); const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${groupId}/blocked/${currentUser.uid}`)); if (blockedSnap.exists()) { alert("អ្នកត្រូវបានបិទ (Block) ពីក្រុមនេះ។"); return; } await window.fb.set(window.fb.ref(db, `groups/${groupId}/members/${currentUser.uid}`), true); await window.fb.set(window.fb.ref(db, `user_groups/${currentUser.uid}/${groupId}`), true); setGroupJoinCode(''); setShowGroupModal(false); alert("ចូលក្រុមបានជោគជ័យ!"); } catch (e) { alert("មានបញ្ហា។"); } };
+            const handleDeleteChatAction = async (chat, e) => { e.stopPropagation(); const db = dbRef.current; if (chat.type === 'direct') { if (!window.confirm("តើអ្នកចង់លុបការសន្ទនានេះចេញពីបញ្ជីមែនទេ?")) return; try { await window.fb.remove(window.fb.ref(db, `user_chats/${currentUser.uid}/${chat.id}`)); } catch (e) {} } else if (chat.type === 'group') { if (chat.owner === currentUser.uid) { if (!window.confirm("តើអ្នកពិតជាចង់លុបក្រុមនេះមែនទេ?")) return; try { await window.fb.remove(window.fb.ref(db, `groups/${chat.id}`)); await window.fb.remove(window.fb.ref(db, `messages/${chat.id}`)); if(chat.inviteCode) await window.fb.remove(window.fb.ref(db, `group_invites/${chat.inviteCode}`)); } catch (e) { alert("មានបញ្ហា។"); } } else { if (!window.confirm("តើអ្នកចង់ចាកចេញពីក្រុមនេះមែនទេ?")) return; try { await window.fb.remove(window.fb.ref(db, `groups/${chat.id}/members/${currentUser.uid}`)); await window.fb.remove(window.fb.ref(db, `user_groups/${currentUser.uid}/${chat.id}`)); } catch (e) { alert("មានបញ្ហា។"); } } } };
+            const startChat = (partner) => { const uids = [currentUser.uid, partner.uid].sort(); const chatId = `${uids[0]}_${uids[1]}`; setActiveChat({ id: chatId, type: 'direct', name: partner.username, tag: partner.tag, partnerId: partner.uid }); setView('chat'); setSearchResult(null); setSearchQuery(''); };
+            const startGroupChat = (group) => { setActiveChat({ id: group.id, type: 'group', name: group.name, owner: group.owner, inviteCode: group.inviteCode }); setView('chat'); };
+            const handleDeleteMessage = async (msgId) => { if(window.confirm("លុបសារនេះ?")) { const db = dbRef.current; await window.fb.remove(window.fb.ref(db, `messages/${activeChat.id}/${msgId}`)); if(editingMessageId === msgId) { setEditingMessageId(null); setInputText(''); } setMobileDeleteId(null); } };
             const handleEditMessage = (msg) => { if (msg.type !== 'text') return; setEditingMessageId(msg.id); setInputText(msg.text); setMobileDeleteId(null); setTimeout(() => inputRef.current?.focus(), 100); };
             const handleTouchStart = (msgId) => { longPressTimerRef.current = setTimeout(() => { setMobileDeleteId(msgId); longPressTimerRef.current = null; }, 500); };
-            
-            // Update Mobile Tap Logic (inside handleTouchEnd)
-            const handleTouchEnd = (msg) => { 
-                if (longPressTimerRef.current) { 
-                    clearTimeout(longPressTimerRef.current); 
-                    longPressTimerRef.current = null; 
-                    // If mobile delete is not active for this message
-                    if (mobileDeleteId !== msg.id) {
-                         // Tap -> Toggle Reactions
-                         if (msg.senderId !== currentUser.uid) {
-                            setActiveReactionId(prev => prev === msg.id ? null : msg.id);
-                         } else {
-                             handleEditMessage(msg);
-                         }
-                    } else { 
-                        setMobileDeleteId(null); 
-                    } 
-                } 
-            };
-            
-            // Update handleClick (Desktop Left Click)
-            const handleClick = (msg) => {
-                if (window.matchMedia("(hover: hover)").matches) {
-                    if (msg.senderId === currentUser.uid) {
-                        handleEditMessage(msg);
-                    }
-                }
-            };
-
-            // Update Context Menu Handler
-            const handleContextMenu = (e, msg) => {
-                if (msg.senderId !== currentUser.uid) {
-                    e.preventDefault(); // Prevent browser context menu only for others' messages
-                    setActiveReactionId(prev => prev === msg.id ? null : msg.id);
-                }
-            };
-            
-            const handleAddReaction = async (msgId, emoji) => {
-                const db = dbRef.current;
-                const reactionRef = window.fb.ref(db, `messages/${activeChat.id}/${msgId}/reactions/${currentUser.uid}`);
-                const snapshot = await window.fb.get(reactionRef);
-                if (snapshot.exists() && snapshot.val() === emoji) { await window.fb.remove(reactionRef); } else { await window.fb.set(reactionRef, emoji); }
-                setActiveReactionId(null); // Close after reacting
-            };
-
-            const handleShowSeenBy = async (seenUids) => {
-                const db = dbRef.current;
-                const users = [];
-                for (const uid of seenUids) {
-                    try {
-                        const snap = await window.fb.get(window.fb.ref(db, `users/${uid}`));
-                        if(snap.exists()) {
-                            users.push({ uid, ...snap.val() });
-                        }
-                    } catch(e) { console.error(e); }
-                }
-                setSeenByUsers(users);
-                setShowSeenByModal(true);
-            };
-
-            const getSeenInfo = (msg) => {
-                if (!msg.seenBy) return null;
-                const seenUids = Object.keys(msg.seenBy).filter(uid => uid !== currentUser.uid);
-                if (seenUids.length === 0) return null;
-                if (activeChat.type === 'direct') return seenUids.includes(activeChat.partnerId) ? <CheckDoubleIcon className="w-4 h-4 text-blue-500" /> : null;
-                else return (
-                    <div className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer hover:text-blue-500" 
-                         onClick={(e) => { e.stopPropagation(); handleShowSeenBy(seenUids); }}>
-                        <EyeIcon className="w-3 h-3"/> {seenUids.length}
-                    </div>
-                );
-            };
-
-            const handleSearch = async (e) => {
-                e.preventDefault(); setSearchResult(null); setSearchError('');
-                if (!searchQuery.startsWith('@')) { setSearchError("ឈ្មោះសម្គាល់ត្រូវចាប់ផ្តើមដោយ @"); return; }
-                const db = dbRef.current;
-                try {
-                    const snapshot = await window.fb.get(window.fb.ref(db, `usernames/${searchQuery.trim()}`));
-                    if (snapshot.exists()) {
-                        const partnerUid = snapshot.val();
-                        if (partnerUid === currentUser.uid) { setSearchError("នេះជាគណនីរបស់អ្នក!"); return; }
-                        const partnerSnapshot = await window.fb.get(window.fb.ref(db, `users/${partnerUid}`));
-                        if (partnerSnapshot.exists()) setSearchResult({ uid: partnerUid, ...partnerSnapshot.val() });
-                    } else { setSearchError("រកមិនឃើញអ្នកប្រើប្រាស់នេះទេ។"); }
-                } catch (e) { setSearchError("មានបញ្ហា។"); }
-            };
-
-            const copyToClipboard = (text) => {
-                const textArea = document.createElement("textarea"); textArea.value = text;
-                textArea.style.position = "fixed"; textArea.style.left = "-9999px"; document.body.appendChild(textArea);
-                textArea.focus(); textArea.select();
-                try { document.execCommand('copy'); alert("បានចម្លង: " + text); } catch (err) {}
-                document.body.removeChild(textArea);
-            };
-
-            const toggleGroupSetting = async (key) => {
-                const oldSettings = allGroupsData[activeChat.id]?.settings || { viewMembers: true, addMembers: true };
-                const newSettings = { ...oldSettings, [key]: !oldSettings[key] };
-                setAllGroupsData(prev => ({ ...prev, [activeChat.id]: { ...prev[activeChat.id], settings: newSettings } }));
-                try { await window.fb.update(window.fb.ref(dbRef.current, `groups/${activeChat.id}/settings`), { [key]: newSettings[key] }); } catch (e) { console.error(e); }
-            };
-
-            const fetchGroupSettings = async () => {
-                if (!activeChat || activeChat.type !== 'group') return;
-                const db = dbRef.current;
-                const membersSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/members`));
-                const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/blocked`));
-                const membersList = [];
-                if (membersSnap.exists()) {
-                    for (const mid of Object.keys(membersSnap.val())) {
-                        const userSnap = await window.fb.get(window.fb.ref(db, `users/${mid}`));
-                        if (userSnap.exists()) membersList.push({ uid: mid, ...userSnap.val() });
-                    }
-                }
-                const blockedList = [];
-                if (blockedSnap.exists()) {
-                    for (const bid of Object.keys(blockedSnap.val())) {
-                        const userSnap = await window.fb.get(window.fb.ref(db, `users/${bid}`));
-                        if (userSnap.exists()) blockedList.push({ uid: bid, ...userSnap.val() });
-                    }
-                }
-                setGroupMembers(membersList); setGroupBlocked(blockedList); setShowSettingsModal(true);
-            };
-            const handleAddMember = async () => {
-                if (!addMemberQuery.trim()) return;
-                const db = dbRef.current;
-                try {
-                    const snap = await window.fb.get(window.fb.ref(db, `usernames/${addMemberQuery.trim()}`));
-                    if (!snap.exists()) { alert("រកមិនឃើញ Username នេះទេ។"); return; }
-                    const uidToAdd = snap.val();
-                    const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/blocked/${uidToAdd}`));
-                    if (blockedSnap.exists()) { alert("អ្នកប្រើប្រាស់នេះកំពុងជាប់ Block។"); return; }
-                    await window.fb.set(window.fb.ref(db, `groups/${activeChat.id}/members/${uidToAdd}`), true);
-                    await window.fb.set(window.fb.ref(db, `user_groups/${uidToAdd}/${activeChat.id}`), true);
-                    setAddMemberQuery(''); fetchGroupSettings(); alert("បានបន្ថែមសមាជិក។");
-                } catch (e) { alert("មានបញ្ហា។"); }
-            };
-            const handleRemoveMember = async (memberId) => {
-                if (!window.confirm("ដកសមាជិក?")) return;
-                const db = dbRef.current;
-                try {
-                    await window.fb.remove(window.fb.ref(db, `groups/${activeChat.id}/members/${memberId}`));
-                    await window.fb.remove(window.fb.ref(db, `user_groups/${memberId}/${activeChat.id}`));
-                    await window.fb.set(window.fb.ref(db, `groups/${activeChat.id}/blocked/${memberId}`), true);
-                    fetchGroupSettings();
-                } catch (e) {}
-            };
-            const handleUnblockMember = async (memberId) => {
-                const db = dbRef.current;
-                try { await window.fb.remove(window.fb.ref(db, `groups/${activeChat.id}/blocked/${memberId}`)); fetchGroupSettings(); } catch (e) {}
-            };
-            const handleMemberClick = (member) => {
-                if (member.uid === currentUser.uid) return;
-                startChat({ uid: member.uid, username: member.username, tag: member.tag });
-                setShowSettingsModal(false);
-            };
-
-            useEffect(() => {
-                if (view !== 'chat' || !activeChat || !firebaseReady) return;
-                const db = dbRef.current;
-                const messagesRef = window.fb.ref(db, `messages/${activeChat.id}`);
-                const unsubscribe = window.fb.onValue(messagesRef, (snapshot) => {
-                    const data = snapshot.val();
-                    const msgs = [];
-                    if (data) {
-                        Object.keys(data).forEach(key => {
-                            const msg = { id: key, ...data[key] };
-                            if (msg.senderId !== currentUser.uid) {
-                                if (!msg.seenBy || !msg.seenBy[currentUser.uid]) {
-                                    window.fb.update(window.fb.ref(db, `messages/${activeChat.id}/${key}/seenBy`), { [currentUser.uid]: true });
-                                }
-                            }
-                            msgs.push(msg);
-                        });
-                    }
-                    msgs.sort((a, b) => a.createdAt - b.createdAt);
-                    setMessages(msgs);
-                });
-                return () => unsubscribe();
-            }, [view, activeChat, firebaseReady]);
+            const handleTouchEnd = (msg) => { if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; if (mobileDeleteId !== msg.id) { if (msg.senderId !== currentUser.uid) { setActiveReactionId(prev => prev === msg.id ? null : msg.id); } else { handleEditMessage(msg); } } else { setMobileDeleteId(null); } } };
+            const handleClick = (msg) => { if (window.matchMedia("(hover: hover)").matches) { if (msg.senderId === currentUser.uid) { handleEditMessage(msg); } } };
+            const handleContextMenu = (e, msg) => { if (msg.senderId !== currentUser.uid) { e.preventDefault(); setActiveReactionId(prev => prev === msg.id ? null : msg.id); } };
+            const handleAddReaction = async (msgId, emoji) => { const db = dbRef.current; const reactionRef = window.fb.ref(db, `messages/${activeChat.id}/${msgId}/reactions/${currentUser.uid}`); const snapshot = await window.fb.get(reactionRef); if (snapshot.exists() && snapshot.val() === emoji) { await window.fb.remove(reactionRef); } else { await window.fb.set(reactionRef, emoji); } setActiveReactionId(null); };
+            const handleShowSeenBy = async (seenUids) => { const db = dbRef.current; const users = []; for (const uid of seenUids) { try { const snap = await window.fb.get(window.fb.ref(db, `users/${uid}`)); if(snap.exists()) { users.push({ uid, ...snap.val() }); } } catch(e) { console.error(e); } } setSeenByUsers(users); setShowSeenByModal(true); };
+            const getSeenInfo = (msg) => { if (!msg.seenBy) return null; const seenUids = Object.keys(msg.seenBy).filter(uid => uid !== currentUser.uid); if (seenUids.length === 0) return null; if (activeChat.type === 'direct') return seenUids.includes(activeChat.partnerId) ? <CheckDoubleIcon className="w-4 h-4 text-blue-500" /> : null; else return (<div className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer hover:text-blue-500" onClick={(e) => { e.stopPropagation(); handleShowSeenBy(seenUids); }}><EyeIcon className="w-3 h-3"/> {seenUids.length}</div>); };
+            const handleSearch = async (e) => { e.preventDefault(); setSearchResult(null); setSearchError(''); if (!searchQuery.startsWith('@')) { setSearchError("ឈ្មោះសម្គាល់ត្រូវចាប់ផ្តើមដោយ @"); return; } const db = dbRef.current; try { const snapshot = await window.fb.get(window.fb.ref(db, `usernames/${searchQuery.trim()}`)); if (snapshot.exists()) { const partnerUid = snapshot.val(); if (partnerUid === currentUser.uid) { setSearchError("នេះជាគណនីរបស់អ្នក!"); return; } const partnerSnapshot = await window.fb.get(window.fb.ref(db, `users/${partnerUid}`)); if (partnerSnapshot.exists()) setSearchResult({ uid: partnerUid, ...partnerSnapshot.val() }); } else { setSearchError("រកមិនឃើញអ្នកប្រើប្រាស់នេះទេ។"); } } catch (e) { setSearchError("មានបញ្ហា។"); } };
+            const copyToClipboard = (text) => { const textArea = document.createElement("textarea"); textArea.value = text; textArea.style.position = "fixed"; textArea.style.left = "-9999px"; document.body.appendChild(textArea); textArea.focus(); textArea.select(); try { document.execCommand('copy'); alert("បានចម្លង: " + text); } catch (err) {} document.body.removeChild(textArea); };
+            const toggleGroupSetting = async (key) => { const oldSettings = allGroupsData[activeChat.id]?.settings || { viewMembers: true, addMembers: true }; const newSettings = { ...oldSettings, [key]: !oldSettings[key] }; setAllGroupsData(prev => ({ ...prev, [activeChat.id]: { ...prev[activeChat.id], settings: newSettings } })); try { await window.fb.update(window.fb.ref(dbRef.current, `groups/${activeChat.id}/settings`), { [key]: newSettings[key] }); } catch (e) { console.error(e); } };
+            const fetchGroupSettings = async () => { if (!activeChat || activeChat.type !== 'group') return; const db = dbRef.current; const membersSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/members`)); const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/blocked`)); const membersList = []; if (membersSnap.exists()) { for (const mid of Object.keys(membersSnap.val())) { const userSnap = await window.fb.get(window.fb.ref(db, `users/${mid}`)); if (userSnap.exists()) membersList.push({ uid: mid, ...userSnap.val() }); } } const blockedList = []; if (blockedSnap.exists()) { for (const bid of Object.keys(blockedSnap.val())) { const userSnap = await window.fb.get(window.fb.ref(db, `users/${bid}`)); if (userSnap.exists()) blockedList.push({ uid: bid, ...userSnap.val() }); } } setGroupMembers(membersList); setGroupBlocked(blockedList); setShowSettingsModal(true); };
+            const handleAddMember = async () => { if (!addMemberQuery.trim()) return; const db = dbRef.current; try { const snap = await window.fb.get(window.fb.ref(db, `usernames/${addMemberQuery.trim()}`)); if (!snap.exists()) { alert("រកមិនឃើញ Username នេះទេ។"); return; } const uidToAdd = snap.val(); const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/blocked/${uidToAdd}`)); if (blockedSnap.exists()) { alert("អ្នកប្រើប្រាស់នេះកំពុងជាប់ Block។"); return; } await window.fb.set(window.fb.ref(db, `groups/${activeChat.id}/members/${uidToAdd}`), true); await window.fb.set(window.fb.ref(db, `user_groups/${uidToAdd}/${activeChat.id}`), true); setAddMemberQuery(''); fetchGroupSettings(); alert("បានបន្ថែមសមាជិក។"); } catch (e) { alert("មានបញ្ហា។"); } };
+            const handleRemoveMember = async (memberId) => { if (!window.confirm("ដកសមាជិក?")) return; const db = dbRef.current; try { await window.fb.remove(window.fb.ref(db, `groups/${activeChat.id}/members/${memberId}`)); await window.fb.remove(window.fb.ref(db, `user_groups/${memberId}/${activeChat.id}`)); await window.fb.set(window.fb.ref(db, `groups/${activeChat.id}/blocked/${memberId}`), true); fetchGroupSettings(); } catch (e) {} };
+            const handleUnblockMember = async (memberId) => { const db = dbRef.current; try { await window.fb.remove(window.fb.ref(db, `groups/${activeChat.id}/blocked/${memberId}`)); fetchGroupSettings(); } catch (e) {} };
+            const handleMemberClick = (member) => { if (member.uid === currentUser.uid) return; startChat({ uid: member.uid, username: member.username, tag: member.tag }); setShowSettingsModal(false); };
+            useEffect(() => { if (view !== 'chat' || !activeChat || !firebaseReady) return; const db = dbRef.current; const messagesRef = window.fb.ref(db, `messages/${activeChat.id}`); const unsubscribe = window.fb.onValue(messagesRef, (snapshot) => { const data = snapshot.val(); const msgs = []; if (data) { Object.keys(data).forEach(key => { const msg = { id: key, ...data[key] }; if (msg.senderId !== currentUser.uid) { if (!msg.seenBy || !msg.seenBy[currentUser.uid]) { window.fb.update(window.fb.ref(db, `messages/${activeChat.id}/${key}/seenBy`), { [currentUser.uid]: true }); } } msgs.push(msg); }); } msgs.sort((a, b) => a.createdAt - b.createdAt); setMessages(msgs); }); return () => unsubscribe(); }, [view, activeChat, firebaseReady]);
             useEffect(() => { if(view === 'chat') messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, view, uploadingItem]);
+
+            // --- Call Logic Functions ---
+            const initiateCall = async (type) => {
+                if (!activeChat) return;
+                const db = dbRef.current;
+                const callId = 'call_' + Date.now() + Math.random().toString(36).substr(2, 5);
+                
+                const callData = {
+                    id: callId,
+                    caller: {
+                        uid: currentUser.uid,
+                        name: currentUser.username,
+                        photoUrl: currentUser.photoUrl || ''
+                    },
+                    target: {
+                        id: activeChat.id, // Group ID or User ID if direct (using chat ID for simplicity)
+                        name: activeChat.name,
+                        type: activeChat.type // 'direct' or 'group'
+                    },
+                    type: type, // 'audio' or 'video'
+                    status: 'ringing',
+                    participants: {
+                        [currentUser.uid]: true
+                    },
+                    timestamp: Date.now()
+                };
+
+                try {
+                    await window.fb.set(window.fb.ref(db, `active_calls/${callId}`), callData);
+                    setActiveCallSession(callData);
+                    // Also push a message about the call
+                    const msgData = {
+                        text: type === 'video' ? '📞 Video Call Started' : '📞 Audio Call Started',
+                        type: 'call_log',
+                        senderId: currentUser.uid,
+                        senderName: currentUser.username,
+                        createdAt: Date.now()
+                    };
+                    await window.fb.push(window.fb.ref(db, `messages/${activeChat.id}`), msgData);
+                } catch (e) {
+                    console.error("Call init failed", e);
+                }
+            };
+
+            const acceptCall = async (call) => {
+                const db = dbRef.current;
+                try {
+                    const updates = {};
+                    updates[`active_calls/${call.id}/status`] = 'active';
+                    updates[`active_calls/${call.id}/participants/${currentUser.uid}`] = true;
+                    await window.fb.update(window.fb.ref(db), updates);
+                    
+                    setActiveCallSession(call);
+                    setIncomingCall(null);
+                } catch (e) { console.error("Accept failed", e); }
+            };
+
+            const rejectCall = () => {
+                // Just hide locally for now
+                setIncomingCall(null);
+            };
+
+            const endCall = async () => {
+                if (!activeCallSession) return;
+                const db = dbRef.current;
+                const callId = activeCallSession.id;
+                
+                try {
+                    // Remove self
+                    await window.fb.remove(window.fb.ref(db, `active_calls/${callId}/participants/${currentUser.uid}`));
+                    
+                    // If I was the caller or last participant, remove call completely (simplified logic)
+                    // In a real app, check participant count
+                    const callSnap = await window.fb.get(window.fb.ref(db, `active_calls/${callId}/participants`));
+                    if (!callSnap.exists() || Object.keys(callSnap.val()).length === 0) {
+                         await window.fb.remove(window.fb.ref(db, `active_calls/${callId}`));
+                    }
+
+                    setActiveCallSession(null);
+                } catch (e) { console.error("End call failed", e); }
+            };
 
             // --- Views ---
             if (view === 'loading') return (<div className="flex items-center justify-center h-full"><Loader2Icon className="animate-spin text-blue-500 w-10 h-10" /></div>);
@@ -736,6 +628,21 @@
             if (view === 'home') {
                 return (
                     <div className="flex flex-col h-full bg-gray-50 max-w-md mx-auto shadow-2xl overflow-hidden relative">
+                        {incomingCall && (
+                            <IncomingCallModal 
+                                call={incomingCall} 
+                                onAnswer={() => acceptCall(incomingCall)} 
+                                onDecline={rejectCall} 
+                            />
+                        )}
+                        {activeCallSession && (
+                            <ActiveCallModal 
+                                call={activeCallSession} 
+                                currentUser={currentUser}
+                                onEndCall={endCall}
+                            />
+                        )}
+
                         {showProfileModal && (
                             <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
                                 <div className="bg-white p-6 rounded-2xl w-full max-w-sm shadow-xl modal-content flex flex-col items-center">
@@ -809,36 +716,23 @@
                     <div className="flex flex-col h-full bg-gray-100 font-battambang max-w-md mx-auto shadow-2xl relative">
                         <input type="file" accept="image/*" className="hidden" ref={imageInputRef} onChange={(e) => handleFileUpload(e, 'image')} />
                         <input type="file" accept="video/*" className="hidden" ref={videoInputRef} onChange={(e) => handleFileUpload(e, 'video')} />
-
-                        {showCallModal && (
-                            <div className="absolute inset-0 z-50 bg-gray-900 flex flex-col items-center justify-center text-white">
-                                <div className="w-32 h-32 rounded-full bg-gray-700 flex items-center justify-center mb-8 ripple-effect relative"><div className="w-24 h-24 rounded-full overflow-hidden bg-gray-500 z-10"><UserIcon className="w-full h-full p-4"/></div></div>
-                                <h2 className="text-2xl font-bold mb-2">{activeChat.name}</h2>
-                                <p className="text-gray-400 mb-12 animate-pulse">{showCallModal === 'audio' ? 'កំពុងហៅសំឡេង...' : 'កំពុងហៅវីដេអូ...'}</p>
-                                <button onClick={() => setShowCallModal(null)} className="p-4 bg-red-600 rounded-full hover:bg-red-700 shadow-lg transform transition active:scale-95"><PhoneOffIcon className="w-8 h-8" /></button>
-                            </div>
+                        
+                        {/* CALL MODALS */}
+                        {incomingCall && (
+                            <IncomingCallModal 
+                                call={incomingCall} 
+                                onAnswer={() => acceptCall(incomingCall)} 
+                                onDecline={rejectCall} 
+                            />
+                        )}
+                        {activeCallSession && (
+                            <ActiveCallModal 
+                                call={activeCallSession} 
+                                currentUser={currentUser}
+                                onEndCall={endCall}
+                            />
                         )}
 
-                        {showSeenByModal && (
-                            <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-                                <div className="bg-white p-4 rounded-2xl w-full max-w-sm shadow-xl modal-content h-[50vh] flex flex-col">
-                                    <div className="flex justify-between items-center mb-4 border-b pb-2">
-                                        <h3 className="font-bold text-lg">អ្នកបានមើល ({seenByUsers.length})</h3>
-                                        <button onClick={() => setShowSeenByModal(false)}><XIcon className="w-6 h-6 text-gray-500"/></button>
-                                    </div>
-                                    <div className="flex-1 overflow-y-auto">
-                                        {seenByUsers.map((u, index) => (
-                                            <div key={index} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg">
-                                                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-                                                     {u.photoUrl ? <img src={u.photoUrl} className="w-full h-full object-cover"/> : <UserIcon className="w-full h-full p-2"/>}
-                                                </div>
-                                                <span className="font-bold text-gray-800">{u.username}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
 
                         {showSettingsModal && (<div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><div className="bg-white p-4 rounded-2xl w-full max-w-sm shadow-xl modal-content h-[80vh] flex flex-col"><div className="flex justify-between items-center mb-4 border-b pb-2"><h3 className="font-bold text-lg">ការកំណត់ក្រុម: {activeChat.name}</h3><button onClick={() => setShowSettingsModal(false)}><XIcon className="w-6 h-6 text-gray-500"/></button></div><div className="mb-4 bg-blue-50 p-3 rounded-lg"><p className="text-xs text-gray-500 uppercase">លេខកូដក្រុម</p><div className="flex justify-between items-center font-mono font-bold text-blue-700">{activeChat.inviteCode}<button onClick={() => copyToClipboard(activeChat.inviteCode)}><CopyIcon className="w-4 h-4"/></button></div></div>
                         
@@ -897,8 +791,8 @@
                                 <div className="overflow-hidden"><h2 className="font-bold text-gray-800 truncate">{activeChat.name}</h2><p className="text-xs text-gray-500 truncate">{activeChat.type === 'group' ? 'Group Chat' : activeChat.tag}</p></div>
                             </div>
                             <div className="flex gap-1">
-                                <button onClick={() => setShowCallModal('audio')} className="p-2 text-blue-500 hover:bg-blue-50 rounded-full"><PhoneIcon className="w-5 h-5" /></button>
-                                <button onClick={() => setShowCallModal('video')} className="p-2 text-blue-500 hover:bg-blue-50 rounded-full"><VideoCallIcon className="w-5 h-5" /></button>
+                                <button onClick={() => initiateCall('audio')} className="p-2 text-blue-500 hover:bg-blue-50 rounded-full"><PhoneIcon className="w-5 h-5" /></button>
+                                <button onClick={() => initiateCall('video')} className="p-2 text-blue-500 hover:bg-blue-50 rounded-full"><VideoCallIcon className="w-5 h-5" /></button>
                                 {activeChat.type === 'group' && <button onClick={fetchGroupSettings} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"><SettingsIcon className="w-6 h-6" /></button>}
                             </div>
                         </div>

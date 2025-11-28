@@ -106,7 +106,8 @@
         const EyeIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>);
         const CheckDoubleIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 12l5 5L17 7"></path><path d="M12 5l5 5L22 7"></path></svg>);
         const PhoneOffIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>);
-        const CheckIconSimple = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"></polyline></svg>);
+
+        // --- Component Definitions ---
 
         function LoginView({ onRegister, onLogin }) {
             const [mode, setMode] = useState('register'); 
@@ -201,6 +202,7 @@
             const [myGroupIds, setMyGroupIds] = useState([]);
             const [allGroupsData, setAllGroupsData] = useState({});
             const [allChats, setAllChats] = useState([]);
+            
             const [searchQuery, setSearchQuery] = useState('');
             const [searchResult, setSearchResult] = useState(null);
             const [searchError, setSearchError] = useState('');
@@ -211,6 +213,7 @@
             const [mobileDeleteId, setMobileDeleteId] = useState(null);
             const [isRecording, setIsRecording] = useState(false);
             const [mediaRecorder, setMediaRecorder] = useState(null);
+            
             const [showPasswordModal, setShowPasswordModal] = useState(false);
             const [newPassword, setNewPassword] = useState('');
             const [showGroupModal, setShowGroupModal] = useState(false);
@@ -220,17 +223,21 @@
             const [showSeenByModal, setShowSeenByModal] = useState(false);
             const [seenByUsers, setSeenByUsers] = useState([]);
             const [showCallModal, setShowCallModal] = useState(null);
+
             const [groupName, setGroupName] = useState('');
             const [groupJoinCode, setGroupJoinCode] = useState('');
             const [groupMembers, setGroupMembers] = useState([]);
             const [groupBlocked, setGroupBlocked] = useState([]);
             const [addMemberQuery, setAddMemberQuery] = useState('');
+            
             const [isEditingGroupName, setIsEditingGroupName] = useState(false);
             const [editedGroupName, setEditedGroupName] = useState('');
             const [isUploadingGroupProfile, setIsUploadingGroupProfile] = useState(false);
             const [isSettingsLoading, setIsSettingsLoading] = useState(false);
+
             const [incomingCall, setIncomingCall] = useState(null); 
             const [activeCallSession, setActiveCallSession] = useState(null);
+            
             const [isInputFocused, setIsInputFocused] = useState(false);
             const [uploadingItem, setUploadingItem] = useState(null); 
             const [activeReactionId, setActiveReactionId] = useState(null);
@@ -317,16 +324,19 @@
                 checkAuth();
             }, [firebaseReady]);
 
+            // Presence System
             useEffect(() => {
                 if (!currentUser || !firebaseReady) return;
                 const db = dbRef.current;
                 const connectedRef = window.fb.ref(db, ".info/connected");
                 const userStatusRef = window.fb.ref(db, `users/${currentUser.uid}/status`);
                 const userLastSeenRef = window.fb.ref(db, `users/${currentUser.uid}/lastSeen`);
+
                 const unsubscribe = window.fb.onValue(connectedRef, (snap) => {
                     if (snap.val() === true) {
                         window.fb.onDisconnect(userStatusRef).set("offline");
                         window.fb.onDisconnect(userLastSeenRef).set(window.fb.serverTimestamp());
+                        
                         window.fb.set(userStatusRef, "online");
                         window.fb.set(userLastSeenRef, window.fb.serverTimestamp());
                     }
@@ -445,8 +455,55 @@
                 } catch (e) { setInputText(text); } 
             };
 
-            const handleRegister = async (name) => { if (!name.trim()) return; const db = dbRef.current; const newUid = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5); const cleanName = name.replace(/\s+/g, '').substring(0, 10); const randomSuffix = Math.floor(100 + Math.random() * 900); const newUsername = `@${cleanName}_${randomSuffix}`; const userData = { username: name, tag: newUsername, deviceId: deviceIdRef.current, createdAt: Date.now() }; try { await window.fb.set(window.fb.ref(db, `users/${newUid}`), userData); await window.fb.set(window.fb.ref(db, `usernames/${newUsername}`), newUid); localStorage.setItem('chat_app_uid', newUid); setCurrentUser({ uid: newUid, ...userData }); setView('home'); } catch (e) { alert("បរាជ័យក្នុងការបង្កើតគណនី។"); } };
-            const handleLogin = async (name, tag, password) => { const db = dbRef.current; try { const snapshot = await window.fb.get(window.fb.ref(db, `usernames/${tag.trim()}`)); if (!snapshot.exists()) { alert("រកមិនឃើញ Username នេះទេ។"); return; } const uid = snapshot.val(); const userSnap = await window.fb.get(window.fb.ref(db, `users/${uid}`)); if (!userSnap.exists()) return; const userData = userSnap.val(); if (userData.username !== name.trim()) { alert("ឈ្មោះមិនត្រឹមត្រូវ។"); return; } if (userData.deviceId === deviceIdRef.current) { localStorage.setItem('chat_app_uid', uid); setCurrentUser({ uid, ...userData }); setView('home'); } else { if (userData.password) { if (userData.password === password) { localStorage.setItem('chat_app_uid', uid); setCurrentUser({ uid, ...userData }); setView('home'); } else { alert("Password មិនត្រឹមត្រូវ។"); } } else { await window.fb.update(window.fb.ref(db, `users/${uid}`), { deviceId: deviceIdRef.current }); localStorage.setItem('chat_app_uid', uid); setCurrentUser({ uid, ...userData, deviceId: deviceIdRef.current }); setView('home'); } } } catch (e) { alert("មានបញ្ហា។"); } };
+            // Handlers
+            const handleRegister = async (name) => { 
+                if (!name.trim()) return; 
+                const db = dbRef.current; 
+                const newUid = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5); 
+                const cleanName = name.replace(/\s+/g, '').substring(0, 10); 
+                const randomSuffix = Math.floor(100 + Math.random() * 900); 
+                const newUsername = `@${cleanName}_${randomSuffix}`; 
+                const userData = { username: name, tag: newUsername, deviceId: deviceIdRef.current, createdAt: Date.now() }; 
+                try { 
+                    await window.fb.set(window.fb.ref(db, `users/${newUid}`), userData); 
+                    await window.fb.set(window.fb.ref(db, `usernames/${newUsername}`), newUid); 
+                    localStorage.setItem('chat_app_uid', newUid); 
+                    setCurrentUser({ uid: newUid, ...userData }); 
+                    setView('home'); 
+                } catch (e) { alert("បរាជ័យក្នុងការបង្កើតគណនី។"); } 
+            };
+
+            const handleLogin = async (name, tag, password) => { 
+                const db = dbRef.current; 
+                try { 
+                    const snapshot = await window.fb.get(window.fb.ref(db, `usernames/${tag.trim()}`)); 
+                    if (!snapshot.exists()) { alert("រកមិនឃើញ Username នេះទេ។"); return; } 
+                    const uid = snapshot.val(); 
+                    const userSnap = await window.fb.get(window.fb.ref(db, `users/${uid}`)); 
+                    if (!userSnap.exists()) return; 
+                    const userData = userSnap.val(); 
+                    if (userData.username !== name.trim()) { alert("ឈ្មោះមិនត្រឹមត្រូវ។"); return; } 
+                    if (userData.deviceId === deviceIdRef.current) { 
+                        localStorage.setItem('chat_app_uid', uid); 
+                        setCurrentUser({ uid, ...userData }); 
+                        setView('home'); 
+                    } else { 
+                        if (userData.password) { 
+                            if (userData.password === password) { 
+                                localStorage.setItem('chat_app_uid', uid); 
+                                setCurrentUser({ uid, ...userData }); 
+                                setView('home'); 
+                            } else { alert("Password មិនត្រឹមត្រូវ។"); } 
+                        } else { 
+                            await window.fb.update(window.fb.ref(db, `users/${uid}`), { deviceId: deviceIdRef.current }); 
+                            localStorage.setItem('chat_app_uid', uid); 
+                            setCurrentUser({ uid, ...userData, deviceId: deviceIdRef.current }); 
+                            setView('home'); 
+                        } 
+                    } 
+                } catch (e) { alert("មានបញ្ហា។"); } 
+            };
+
             const savePasswordAndLogout = async () => { if (!newPassword.trim()) return; try { await window.fb.update(window.fb.ref(dbRef.current, `users/${currentUser.uid}`), { password: newPassword }); setShowPasswordModal(false); performLogout(); } catch (e) { alert("បរាជ័យ។"); } };
             const performLogout = () => { localStorage.removeItem('chat_app_uid'); setCurrentUser(null); setActiveChat(null); setMessages([]); setView('login'); };
             const handleCreateGroup = async () => { if (!groupName.trim()) return; const db = dbRef.current; const groupId = 'group_' + Date.now() + Math.random().toString(36).substr(2, 5); const inviteCode = Math.random().toString(36).substr(2, 8).toUpperCase(); const timestamp = Date.now(); const groupData = { name: groupName, owner: currentUser.uid, inviteCode: inviteCode, createdAt: timestamp, members: { [currentUser.uid]: true }, settings: { viewMembers: true, addMembers: true }, lastMsg: "Group Created", timestamp: timestamp }; try { await window.fb.set(window.fb.ref(db, `groups/${groupId}`), groupData); await window.fb.set(window.fb.ref(db, `user_groups/${currentUser.uid}/${groupId}`), true); await window.fb.set(window.fb.ref(db, `group_invites/${inviteCode}`), groupId); setGroupName(''); setShowGroupModal(false); alert(`បានបង្កើតក្រុមជោគជ័យ! លេខកូដក្រុម៖ ${inviteCode}`); } catch (e) { alert("បរាជ័យ។"); } };
@@ -465,16 +522,94 @@
             const getSeenInfo = (msg) => { if (!msg.seenBy) return null; const seenUids = Object.keys(msg.seenBy).filter(uid => uid !== currentUser.uid); if (seenUids.length === 0) return null; if (activeChat.type === 'direct') return seenUids.includes(activeChat.partnerId) ? <CheckDoubleIcon className="w-4 h-4 text-blue-500" /> : null; else return (<div className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer hover:text-blue-500" onClick={(e) => { e.stopPropagation(); handleShowSeenBy(seenUids); }}><EyeIcon className="w-3 h-3"/> {seenUids.length}</div>); };
             const handleSearch = async (e) => { e.preventDefault(); setSearchResult(null); setSearchError(''); if (!searchQuery.startsWith('@')) { setSearchError("ឈ្មោះសម្គាល់ត្រូវចាប់ផ្តើមដោយ @"); return; } const db = dbRef.current; try { const snapshot = await window.fb.get(window.fb.ref(db, `usernames/${searchQuery.trim()}`)); if (snapshot.exists()) { const partnerUid = snapshot.val(); if (partnerUid === currentUser.uid) { setSearchError("នេះជាគណនីរបស់អ្នក!"); return; } const partnerSnapshot = await window.fb.get(window.fb.ref(db, `users/${partnerUid}`)); if (partnerSnapshot.exists()) setSearchResult({ uid: partnerUid, ...partnerSnapshot.val() }); } else { setSearchError("រកមិនឃើញអ្នកប្រើប្រាស់នេះទេ។"); } } catch (e) { setSearchError("មានបញ្ហា។"); } };
             const copyToClipboard = (text) => { const textArea = document.createElement("textarea"); textArea.value = text; textArea.style.position = "fixed"; textArea.style.left = "-9999px"; document.body.appendChild(textArea); textArea.focus(); textArea.select(); try { document.execCommand('copy'); alert("បានចម្លង: " + text); } catch (err) {} document.body.removeChild(textArea); };
-            const toggleGroupSetting = async (key) => { const oldSettings = allGroupsData[activeChat.id]?.settings || { viewMembers: true, addMembers: true }; const newSettings = { ...oldSettings, [key]: !oldSettings[key] }; setAllGroupsData(prev => ({ ...prev, [activeChat.id]: { ...prev[activeChat.id], settings: newSettings } })); try { await window.fb.update(window.fb.ref(dbRef.current, `groups/${activeChat.id}/settings`), { [key]: newSettings[key] }); } catch (e) { console.error(e); } };
-            const fetchGroupSettings = async () => { if (!activeChat || activeChat.type !== 'group') return; const db = dbRef.current; const membersSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/members`)); const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/blocked`)); const membersList = []; if (membersSnap.exists()) { for (const mid of Object.keys(membersSnap.val())) { const userSnap = await window.fb.get(window.fb.ref(db, `users/${mid}`)); if (userSnap.exists()) membersList.push({ uid: mid, ...userSnap.val() }); } } const blockedList = []; if (blockedSnap.exists()) { for (const bid of Object.keys(blockedSnap.val())) { const userSnap = await window.fb.get(window.fb.ref(db, `users/${bid}`)); if (userSnap.exists()) blockedList.push({ uid: bid, ...userSnap.val() }); } } setGroupMembers(membersList); setGroupBlocked(blockedList); setShowSettingsModal(true); };
-            const handleAddMember = async () => { if (!addMemberQuery.trim()) return; const db = dbRef.current; try { const snap = await window.fb.get(window.fb.ref(db, `usernames/${addMemberQuery.trim()}`)); if (!snap.exists()) { alert("រកមិនឃើញ Username នេះទេ។"); return; } const uidToAdd = snap.val(); const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/blocked/${uidToAdd}`)); if (blockedSnap.exists()) { alert("អ្នកប្រើប្រាស់នេះកំពុងជាប់ Block។"); return; } await window.fb.set(window.fb.ref(db, `groups/${activeChat.id}/members/${uidToAdd}`), true); await window.fb.set(window.fb.ref(db, `user_groups/${uidToAdd}/${activeChat.id}`), true); setAddMemberQuery(''); fetchGroupSettings(); alert("បានបន្ថែមសមាជិក។"); } catch (e) { alert("មានបញ្ហា។"); } };
-            const handleRemoveMember = async (memberId) => { if (!window.confirm("ដកសមាជិក?")) return; const db = dbRef.current; try { await window.fb.remove(window.fb.ref(db, `groups/${activeChat.id}/members/${memberId}`)); await window.fb.remove(window.fb.ref(db, `user_groups/${memberId}/${activeChat.id}`)); await window.fb.set(window.fb.ref(db, `groups/${activeChat.id}/blocked/${memberId}`), true); fetchGroupSettings(); } catch (e) {} };
-            const handleUnblockMember = async (memberId) => { const db = dbRef.current; try { await window.fb.remove(window.fb.ref(db, `groups/${activeChat.id}/blocked/${memberId}`)); fetchGroupSettings(); } catch (e) {} };
+            
+            // Instant Open Settings Handler
+            const openGroupSettings = () => {
+                if (!activeChat || activeChat.type !== 'group') return;
+                setShowSettingsModal(true); 
+            };
+
+            const toggleGroupSetting = async (key) => {
+                const oldSettings = allGroupsData[activeChat.id]?.settings || { viewMembers: true, addMembers: true };
+                const newSettings = { ...oldSettings, [key]: !oldSettings[key] };
+                setAllGroupsData(prev => ({ ...prev, [activeChat.id]: { ...prev[activeChat.id], settings: newSettings } }));
+                try { await window.fb.update(window.fb.ref(dbRef.current, `groups/${activeChat.id}/settings`), { [key]: newSettings[key] }); } catch (e) { console.error(e); }
+            };
+
+            useEffect(() => {
+                if (showSettingsModal && activeChat?.type === 'group') {
+                    const loadSettings = async () => {
+                        setIsSettingsLoading(true);
+                        const db = dbRef.current;
+                        setGroupMembers([]); 
+                        setGroupBlocked([]);
+                        setEditedGroupName(allGroupsData[activeChat.id]?.name || activeChat.name);
+
+                        const membersSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/members`));
+                        const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/blocked`));
+                        
+                        const membersList = [];
+                        if (membersSnap.exists()) {
+                            for (const mid of Object.keys(membersSnap.val())) {
+                                const userSnap = await window.fb.get(window.fb.ref(db, `users/${mid}`));
+                                if (userSnap.exists()) membersList.push({ uid: mid, ...userSnap.val() });
+                            }
+                        }
+                        const blockedList = [];
+                        if (blockedSnap.exists()) {
+                            for (const bid of Object.keys(blockedSnap.val())) {
+                                const userSnap = await window.fb.get(window.fb.ref(db, `users/${bid}`));
+                                if (userSnap.exists()) blockedList.push({ uid: bid, ...userSnap.val() });
+                            }
+                        }
+                        setGroupMembers(membersList); 
+                        setGroupBlocked(blockedList);
+                        setIsSettingsLoading(false);
+                    };
+                    loadSettings();
+                }
+            }, [showSettingsModal, activeChat]); 
+
+            const handleUpdateGroupName = async () => {
+                if (!editedGroupName.trim()) return;
+                try {
+                    await window.fb.update(window.fb.ref(dbRef.current, `groups/${activeChat.id}`), { name: editedGroupName });
+                    setIsEditingGroupName(false);
+                } catch (e) { alert("បរាជ័យ។"); }
+            };
+
+            const handleUpdateGroupProfile = async (e) => {
+                const file = e.target.files[0]; if (!file) return; setIsUploadingGroupProfile(true);
+                try {
+                    const url = await uploadToCloudinary(file, 'image');
+                    await window.fb.update(window.fb.ref(dbRef.current, `groups/${activeChat.id}`), { photoUrl: url });
+                } catch (e) { alert("បរាជ័យ។"); }
+                finally { setIsUploadingGroupProfile(false); e.target.value = null; }
+            };
+
+            const handleAddMember = async () => {
+                if (!addMemberQuery.trim()) return;
+                const db = dbRef.current;
+                try {
+                    const snap = await window.fb.get(window.fb.ref(db, `usernames/${addMemberQuery.trim()}`));
+                    if (!snap.exists()) { alert("រកមិនឃើញ Username នេះទេ។"); return; }
+                    const uidToAdd = snap.val();
+                    const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/blocked/${uidToAdd}`));
+                    if (blockedSnap.exists()) { alert("អ្នកប្រើប្រាស់នេះកំពុងជាប់ Block។"); return; }
+                    await window.fb.set(window.fb.ref(db, `groups/${activeChat.id}/members/${uidToAdd}`), true);
+                    await window.fb.set(window.fb.ref(db, `user_groups/${uidToAdd}/${activeChat.id}`), true);
+                    setAddMemberQuery(''); 
+                     const userSnap = await window.fb.get(window.fb.ref(db, `users/${uidToAdd}`));
+                     if(userSnap.exists()) setGroupMembers(prev => [...prev, { uid: uidToAdd, ...userSnap.val() }]);
+                    alert("បានបន្ថែមសមាជិក។");
+                } catch (e) { alert("មានបញ្ហា។"); }
+            };
+            const handleRemoveMember = async (memberId) => { if (!window.confirm("ដកសមាជិក?")) return; const db = dbRef.current; try { await window.fb.remove(window.fb.ref(db, `groups/${activeChat.id}/members/${memberId}`)); await window.fb.remove(window.fb.ref(db, `user_groups/${memberId}/${activeChat.id}`)); await window.fb.set(window.fb.ref(db, `groups/${activeChat.id}/blocked/${memberId}`), true); setGroupMembers(prev => prev.filter(m => m.uid !== memberId)); } catch (e) {} };
+            const handleUnblockMember = async (memberId) => { const db = dbRef.current; try { await window.fb.remove(window.fb.ref(db, `groups/${activeChat.id}/blocked/${memberId}`)); setGroupBlocked(prev => prev.filter(b => b.uid !== memberId)); } catch (e) {} };
             const handleMemberClick = (member) => { if (member.uid === currentUser.uid) return; startChat({ uid: member.uid, username: member.username, tag: member.tag }); setShowSettingsModal(false); };
             useEffect(() => { if (view !== 'chat' || !activeChat || !firebaseReady) return; const db = dbRef.current; const messagesRef = window.fb.ref(db, `messages/${activeChat.id}`); const unsubscribe = window.fb.onValue(messagesRef, (snapshot) => { const data = snapshot.val(); const msgs = []; if (data) { Object.keys(data).forEach(key => { const msg = { id: key, ...data[key] }; if (msg.senderId !== currentUser.uid) { if (!msg.seenBy || !msg.seenBy[currentUser.uid]) { window.fb.update(window.fb.ref(db, `messages/${activeChat.id}/${key}/seenBy`), { [currentUser.uid]: true }); } } msgs.push(msg); }); } msgs.sort((a, b) => a.createdAt - b.createdAt); setMessages(msgs); }); return () => unsubscribe(); }, [view, activeChat, firebaseReady]);
             useEffect(() => { if(view === 'chat') messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, view, uploadingItem]);
 
-            // --- Call Logic Functions ---
             const initiateCall = async (type) => {
                 if (!activeChat) return;
                 const db = dbRef.current;
@@ -488,11 +623,11 @@
                         photoUrl: currentUser.photoUrl || ''
                     },
                     target: {
-                        id: activeChat.id, // Group ID or User ID if direct (using chat ID for simplicity)
+                        id: activeChat.id, 
                         name: activeChat.name,
-                        type: activeChat.type // 'direct' or 'group'
+                        type: activeChat.type 
                     },
-                    type: type, // 'audio' or 'video'
+                    type: type, 
                     status: 'ringing',
                     participants: {
                         [currentUser.uid]: true
@@ -503,7 +638,6 @@
                 try {
                     await window.fb.set(window.fb.ref(db, `active_calls/${callId}`), callData);
                     setActiveCallSession(callData);
-                    // Also push a message about the call
                     const msgData = {
                         text: type === 'video' ? '📞 Video Call Started' : '📞 Audio Call Started',
                         type: 'call_log',
@@ -531,7 +665,6 @@
             };
 
             const rejectCall = () => {
-                // Just hide locally for now
                 setIncomingCall(null);
             };
 
@@ -541,19 +674,17 @@
                 const callId = activeCallSession.id;
                 
                 try {
-                    // Remove self
                     await window.fb.remove(window.fb.ref(db, `active_calls/${callId}/participants/${currentUser.uid}`));
-                    
-                    // If I was the caller or last participant, remove call completely (simplified logic)
-                    // In a real app, check participant count
                     const callSnap = await window.fb.get(window.fb.ref(db, `active_calls/${callId}/participants`));
                     if (!callSnap.exists() || Object.keys(callSnap.val()).length === 0) {
                          await window.fb.remove(window.fb.ref(db, `active_calls/${callId}`));
                     }
-
                     setActiveCallSession(null);
                 } catch (e) { console.error("End call failed", e); }
             };
+
+            useEffect(() => { if (!currentUser || !firebaseReady) return; const db = dbRef.current; const activeCallsRef = window.fb.ref(db, 'active_calls'); const unsubscribe = window.fb.onValue(activeCallsRef, (snapshot) => { if (snapshot.exists()) { const calls = snapshot.val(); let foundCall = null; Object.keys(calls).forEach(callId => { const call = { id: callId, ...calls[callId] }; if (call.caller.uid === currentUser.uid) { if (activeCallSession?.id !== callId) { setActiveCallSession(call); } return; } const isMyGroup = call.target.type === 'group' && myGroupIds.includes(call.target.id); const isDirectMe = call.target.type === 'direct' && call.target.id === currentUser.uid; if ((isMyGroup || isDirectMe) && call.status !== 'ended') { if (call.participants && call.participants[currentUser.uid]) { if (activeCallSession?.id !== callId) setActiveCallSession(call); } else if (!activeCallSession) { foundCall = call; } } }); if (foundCall) { setIncomingCall(foundCall); } else { setIncomingCall(null); if (activeCallSession && !calls[activeCallSession.id]) { setActiveCallSession(null); alert("ការហៅបានបញ្ចប់"); } } } else { setIncomingCall(null); if (activeCallSession) { setActiveCallSession(null); alert("ការហៅបានបញ្ចប់"); } } }); return () => unsubscribe(); }, [currentUser, firebaseReady, myGroupIds, activeCallSession]);
+
 
             // --- Views ---
             if (view === 'loading') return (<div className="flex items-center justify-center h-full"><Loader2Icon className="animate-spin text-blue-500 w-10 h-10" /></div>);
@@ -562,59 +693,18 @@
             if (view === 'home') {
                 return (
                     <div className="flex flex-col h-full bg-gray-50 max-w-md mx-auto shadow-2xl overflow-hidden relative">
-                        {incomingCall && (
-                            <IncomingCallModal 
-                                call={incomingCall} 
-                                onAnswer={() => acceptCall(incomingCall)} 
-                                onDecline={rejectCall} 
-                            />
-                        )}
-                        {activeCallSession && (
-                            <ActiveCallModal 
-                                call={activeCallSession} 
-                                currentUser={currentUser}
-                                onEndCall={endCall}
-                            />
-                        )}
+                        {incomingCall && (<IncomingCallModal call={incomingCall} onAnswer={() => acceptCall(incomingCall)} onDecline={rejectCall} />)}
+                        {activeCallSession && (<ActiveCallModal call={activeCallSession} currentUser={currentUser} onEndCall={endCall} />)}
 
                         {showProfileModal && (
-                            <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-                                <div className="bg-white p-6 rounded-2xl w-full max-w-sm shadow-xl modal-content flex flex-col items-center">
-                                    <h3 className="font-bold text-lg mb-4 text-gray-800">ការកំណត់គណនី</h3>
-                                    <div className="relative mb-4 group cursor-pointer" onClick={() => profileImageInputRef.current.click()}>
-                                        <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-200">
-                                            {currentUser.photoUrl ? <img src={currentUser.photoUrl} className="w-full h-full object-cover" /> : <UserIcon className="w-full h-full text-gray-400 p-2"/>}
-                                        </div>
-                                        <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><Edit2Icon className="w-8 h-8 text-white" /></div>
-                                        {isUploadingProfile && <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center"><Loader2Icon className="w-8 h-8 text-white animate-spin"/></div>}
-                                    </div>
-                                    <input type="file" ref={profileImageInputRef} className="hidden" accept="image/*" onChange={handleProfilePhotoUpload} />
-                                    <h2 className="font-bold text-xl">{currentUser.username}</h2>
-                                    <p className="text-sm text-gray-500 mb-6">{currentUser.tag}</p>
-                                    <div className="w-full mb-2">
-                                        <p className="text-xs font-bold text-gray-500 mb-1 uppercase">សុវត្ថិភាព</p>
-                                        <input type="password" placeholder="Password ថ្មី..." className="w-full px-4 py-3 rounded-xl border mb-2 focus:ring-2 focus:ring-blue-500 outline-none" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}/>
-                                        <button onClick={handleChangePassword} className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700">ប្ដូរ Password</button>
-                                    </div>
-                                    <button onClick={() => setShowProfileModal(false)} className="mt-4 text-gray-500 hover:text-gray-700">បិទ</button>
-                                </div>
-                            </div>
+                            <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><div className="bg-white p-6 rounded-2xl w-full max-w-sm shadow-xl modal-content flex flex-col items-center"><h3 className="font-bold text-lg mb-4 text-gray-800">ការកំណត់គណនី</h3><div className="relative mb-4 group cursor-pointer" onClick={() => profileImageInputRef.current.click()}><div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-200">{currentUser.photoUrl ? <img src={currentUser.photoUrl} className="w-full h-full object-cover" /> : <UserIcon className="w-full h-full text-gray-400 p-2"/>}</div><div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><Edit2Icon className="w-8 h-8 text-white" /></div>{isUploadingProfile && <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center"><Loader2Icon className="w-8 h-8 text-white animate-spin"/></div>}</div><input type="file" ref={profileImageInputRef} className="hidden" accept="image/*" onChange={handleProfilePhotoUpload} /><h2 className="font-bold text-xl">{currentUser.username}</h2><p className="text-sm text-gray-500 mb-6">{currentUser.tag}</p><div className="w-full mb-2"><p className="text-xs font-bold text-gray-500 mb-1 uppercase">សុវត្ថិភាព</p><input type="password" placeholder="Password ថ្មី..." className="w-full px-4 py-3 rounded-xl border mb-2 focus:ring-2 focus:ring-blue-500 outline-none" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}/><button onClick={handleChangePassword} className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700">ប្ដូរ Password</button></div><button onClick={() => setShowProfileModal(false)} className="mt-4 text-gray-500 hover:text-gray-700">បិទ</button></div></div>
                         )}
                         {showPasswordModal && (<div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><div className="bg-white p-6 rounded-2xl w-full max-w-sm shadow-xl modal-content"><h3 className="font-bold text-lg text-center mb-4">បង្កើត Password ដើម្បី Logout</h3><input type="password" placeholder="Password ថ្មី..." className="w-full px-4 py-3 rounded-xl border mb-4" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}/><div className="flex gap-2"><button onClick={() => setShowPasswordModal(false)} className="flex-1 py-2 bg-gray-200 rounded-lg">បោះបង់</button><button onClick={savePasswordAndLogout} className="flex-1 py-2 bg-blue-600 text-white rounded-lg">រក្សាទុក & Logout</button></div></div></div>)}
                         {showGroupModal && (<div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><div className="bg-white p-6 rounded-2xl w-full max-w-sm shadow-xl modal-content"><div className="flex justify-between items-center mb-4"><h3 className="font-bold text-lg">បង្កើត ឬ ចូលក្រុម</h3><button onClick={() => setShowGroupModal(false)}><XIcon className="w-6 h-6 text-gray-500"/></button></div><div className="mb-6"><p className="text-sm font-bold text-blue-600 mb-2">បង្កើតក្រុមថ្មី</p><div className="flex gap-2"><input type="text" placeholder="ឈ្មោះក្រុម..." className="flex-1 px-3 py-2 border rounded-lg" value={groupName} onChange={(e)=>setGroupName(e.target.value)}/><button onClick={handleCreateGroup} className="bg-blue-600 text-white px-4 rounded-lg text-sm">បង្កើត</button></div></div><div className="border-t pt-4"><p className="text-sm font-bold text-green-600 mb-2">ចូលក្រុម (Join)</p><div className="flex gap-2"><input type="text" placeholder="លេខកូដក្រុម..." className="flex-1 px-3 py-2 border rounded-lg" value={groupJoinCode} onChange={(e)=>setGroupJoinCode(e.target.value)}/><button onClick={handleJoinGroup} className="bg-green-600 text-white px-4 rounded-lg text-sm">ចូល</button></div></div></div></div>)}
 
                         <div className="bg-blue-600 p-4 text-white rounded-b-3xl shadow-md z-10">
-                            <div className="flex justify-between items-start mb-4">
-                                <h1 className="text-2xl font-bold">កម្មវិធីជជែកកម្សាន្ត</h1>
-                                <div className="flex gap-3">
-                                    <button onClick={() => setShowProfileModal(true)}><SettingsIcon className="w-6 h-6" /></button>
-                                    <button onClick={() => (!currentUser.password ? setShowPasswordModal(true) : performLogout())}><LogoutIcon className="w-6 h-6" /></button>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 bg-white/20 rounded-full overflow-hidden flex-shrink-0">{currentUser.photoUrl ? <img src={currentUser.photoUrl} className="w-full h-full object-cover"/> : <UserIcon className="w-full h-full p-2"/>}</div>
-                                <div><div className="font-bold text-lg">{currentUser.username}</div><span className="font-mono bg-blue-800/50 px-2 py-0.5 rounded text-xs cursor-pointer" onClick={() => copyToClipboard(currentUser.tag)}>{currentUser.tag}</span></div>
-                            </div>
+                            <div className="flex justify-between items-start mb-4"><h1 className="text-2xl font-bold">កម្មវិធីជជែកកម្សាន្ត</h1><div className="flex gap-3"><button onClick={() => setShowProfileModal(true)}><SettingsIcon className="w-6 h-6" /></button><button onClick={() => (!currentUser.password ? setShowPasswordModal(true) : performLogout())}><LogoutIcon className="w-6 h-6" /></button></div></div>
+                            <div className="flex items-center gap-3"><div className="w-12 h-12 bg-white/20 rounded-full overflow-hidden flex-shrink-0">{currentUser.photoUrl ? <img src={currentUser.photoUrl} className="w-full h-full object-cover"/> : <UserIcon className="w-full h-full p-2"/>}</div><div><div className="font-bold text-lg">{currentUser.username}</div><span className="font-mono bg-blue-800/50 px-2 py-0.5 rounded text-xs cursor-pointer" onClick={() => copyToClipboard(currentUser.tag)}>{currentUser.tag}</span></div></div>
                         </div>
 
                         <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4">
@@ -626,9 +716,7 @@
                                 {allChats.length > 0 && !searchQuery && <p className="text-xs font-bold text-gray-400 mb-2 uppercase">ការសន្ទនាថ្មីៗ</p>}
                                 {allChats.map(chat => (
                                     <div key={chat.id} onClick={() => chat.type === 'direct' ? startChat({uid: chat.id, username: chat.name, tag: chat.tag}) : startGroupChat(chat)} className="bg-white p-3 rounded-xl shadow-sm flex items-center gap-3 cursor-pointer hover:bg-gray-50 transition group relative">
-                                        <div className={`w-12 h-12 flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold overflow-hidden ${chat.type === 'group' ? 'bg-indigo-500' : 'bg-gray-400'}`}>
-                                            {chat.type === 'group' ? <UsersIcon className="w-6 h-6"/> : (chat.photoUrl ? <img src={chat.photoUrl} className="w-full h-full object-cover"/> : chat.name[0])}
-                                        </div>
+                                        <div className={`w-12 h-12 flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold overflow-hidden ${chat.type === 'group' ? 'bg-indigo-500' : 'bg-gray-400'}`}>{chat.type === 'group' ? <UsersIcon className="w-6 h-6"/> : (chat.photoUrl ? <img src={chat.photoUrl} className="w-full h-full object-cover"/> : chat.name[0])}</div>
                                         <div className="flex-1 overflow-hidden"><div className="flex justify-between items-center"><p className="font-bold text-gray-800 truncate">{chat.name}</p>{chat.timestamp && <span className="text-[10px] text-gray-400">{new Date(chat.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>}</div><p className="text-xs text-gray-500 truncate">{chat.lastMsg || 'គ្មានសារ'}</p></div>
                                         <button onClick={(e) => handleDeleteChatAction(chat, e)} className="p-3 text-gray-300 hover:text-red-500 transition flex-shrink-0">{chat.type === 'group' && chat.owner !== currentUser.uid ? <LeaveIcon className="w-5 h-5" /> : <TrashIcon className="w-5 h-5" />}</button>
                                     </div>

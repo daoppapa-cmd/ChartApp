@@ -553,7 +553,11 @@
                     // If mobile delete is not active for this message
                     if (mobileDeleteId !== msg.id) {
                          // Tap -> Toggle Reactions
-                         setActiveReactionId(prev => prev === msg.id ? null : msg.id);
+                         if (msg.senderId !== currentUser.uid) {
+                            setActiveReactionId(prev => prev === msg.id ? null : msg.id);
+                         } else {
+                             handleEditMessage(msg);
+                         }
                     } else { 
                         setMobileDeleteId(null); 
                     } 
@@ -563,15 +567,18 @@
             // Update handleClick (Desktop Left Click)
             const handleClick = (msg) => {
                 if (window.matchMedia("(hover: hover)").matches) {
-                    // Desktop Left Click -> Edit (Keep existing or remove? User didn't say remove, but usually click is interaction. Let's keep Edit for Left Click on Desktop as per previous context)
-                    handleEditMessage(msg);
+                    if (msg.senderId === currentUser.uid) {
+                        handleEditMessage(msg);
+                    }
                 }
             };
 
             // Update Context Menu Handler
-            const handleContextMenu = (e, msgId) => {
-                e.preventDefault(); // Prevent browser context menu
-                setActiveReactionId(prev => prev === msgId ? null : msgId);
+            const handleContextMenu = (e, msg) => {
+                if (msg.senderId !== currentUser.uid) {
+                    e.preventDefault(); // Prevent browser context menu only for others' messages
+                    setActiveReactionId(prev => prev === msg.id ? null : msg.id);
+                }
             };
             
             const handleAddReaction = async (msgId, emoji) => {
@@ -869,8 +876,8 @@
                                                 <div 
                                                     onTouchStart={() => handleTouchStart(msg.id)} 
                                                     onTouchEnd={() => handleTouchEnd(msg)}
-                                                    onClick={(e) => { if (window.matchMedia("(hover: hover)").matches && isMe) { e.stopPropagation(); handleEditMessage(msg); } }} 
-                                                    onContextMenu={(e) => handleContextMenu(e, msg.id)}
+                                                    onClick={(e) => { if (window.matchMedia("(hover: hover)").matches && isMe) { e.stopPropagation(); handleClick(msg); } }} 
+                                                    onContextMenu={(e) => handleContextMenu(e, msg)}
                                                     className={`px-4 py-2 rounded-2xl shadow-sm text-sm cursor-pointer select-none message-bubble relative overflow-hidden ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none'}`}
                                                 >
                                                     {msg.type === 'image' ? ( <img src={msg.fileUrl} className="rounded-lg max-h-60 object-cover" /> ) : msg.type === 'video' ? ( <video src={msg.fileUrl} controls onPlay={handleMediaPlay} className="rounded-lg max-h-60 w-full" /> ) : msg.type === 'audio' ? ( <audio src={msg.fileUrl} controls onPlay={handleMediaPlay} className="w-full min-w-[150px] max-w-[240px]" /> ) : ( <span className="break-words">{msg.text}</span> )}

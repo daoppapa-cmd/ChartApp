@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>កម្មវិធីជជែកកម្សាន្ត</title>
-      <link
+    <link
       rel="icon"
       href="https://i.postimg.cc/QCsMxHyK/dating-app.png"
       type="image/jpeg"
@@ -107,7 +107,6 @@
         const CheckDoubleIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 12l5 5L17 7"></path><path d="M12 5l5 5L22 7"></path></svg>);
         const PhoneOffIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>);
 
-        // --- Auth Component ---
         function LoginView({ onRegister, onLogin }) {
             const [mode, setMode] = useState('register'); 
             const [name, setName] = useState('');
@@ -256,7 +255,6 @@
             );
         }
 
-        // --- Main App Component ---
         function App() {
             const [firebaseReady, setFirebaseReady] = useState(false);
             const [view, setView] = useState('loading');
@@ -471,7 +469,6 @@
             }, [directChats, myGroupIds, allGroupsData]);
 
             // --- Handlers ---
-            // ... (Upload handlers same as before) ...
             const uploadToCloudinary = async (file, resourceType = 'auto') => {
                 const formData = new FormData(); formData.append('file', file); formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET); 
                 try { const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, { method: 'POST', body: formData }); const data = await res.json(); if(data.error) throw new Error(data.error.message); return data.secure_url; } catch (error) { alert("បរាជ័យ៖ " + error.message); throw error; }
@@ -497,18 +494,56 @@
             // ... (Recording, Message Sending, Auth handlers same as before) ...
              const startRecording = async () => { try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); const recorder = new MediaRecorder(stream); const chunks = []; recorder.ondataavailable = e => chunks.push(e.data); recorder.onstop = async () => { const blob = new Blob(chunks, { type: 'audio/ogg; codecs=opus' }); const previewUrl = URL.createObjectURL(blob); setUploadingItem({ id: 'temp_audio_' + Date.now(), type: 'audio', fileUrl: previewUrl, text: '🎤 សំឡេង', senderId: currentUser.uid, createdAt: Date.now(), status: 'uploading' }); try { const url = await uploadToCloudinary(blob, 'video'); await sendMessageWithMedia(url, 'audio'); setUploadingItem(null); } catch (e) { setUploadingItem(null); } }; recorder.start(); setMediaRecorder(recorder); setIsRecording(true); } catch (err) { alert("មិនអាចបើកមីក្រូហ្វូនបានទេ។"); } };
             const stopRecording = () => { if (mediaRecorder) { mediaRecorder.stop(); setIsRecording(false); setMediaRecorder(null); } };
-            const sendMessageWithMedia = async (url, type) => { if (!activeChat) return; const db = dbRef.current; const timestamp = Date.now(); const msgText = type === 'image' ? '📷 រូបភាព' : type === 'video' ? '🎥 វីដេអូ' : '🎤 សំឡេង'; const msgData = { text: msgText, fileUrl: url, type: type, senderId: currentUser.uid, senderName: currentUser.username, createdAt: timestamp }; await window.fb.push(window.fb.ref(db, `messages/${activeChat.id}`), msgData); if (activeChat.type === 'direct') { await window.fb.update(window.fb.ref(db, `user_chats/${currentUser.uid}/${activeChat.partnerId}`), { lastMsg: msgText, timestamp }); await window.fb.update(window.fb.ref(db, `user_chats/${activeChat.partnerId}/${currentUser.uid}`), { lastMsg: msgText, timestamp }); } else { await window.fb.update(window.fb.ref(db, `groups/${activeChat.id}`), { lastMsg: msgText, timestamp }); } };
-            const handleSendMessage = async (e) => { e.preventDefault(); if (!inputText.trim() || !activeChat) return; const text = inputText; setInputText(''); const db = dbRef.current; const timestamp = Date.now(); try { if (editingMessageId) { await window.fb.update(window.fb.ref(db, `messages/${activeChat.id}/${editingMessageId}`), { text: text, updatedAt: timestamp }); setEditingMessageId(null); } else { await window.fb.push(window.fb.ref(db, `messages/${activeChat.id}`), { 
-                            text: text, type: 'text', senderId: currentUser.uid, senderName: currentUser.username, createdAt: timestamp 
-                        });
-                        if (activeChat.type === 'direct') {
-                            await window.fb.update(window.fb.ref(db, `user_chats/${currentUser.uid}/${activeChat.partnerId}`), { name: activeChat.name, tag: activeChat.tag, uid: activeChat.partnerId, lastMsg: text, timestamp });
-                            await window.fb.update(window.fb.ref(db, `user_chats/${activeChat.partnerId}/${currentUser.uid}`), { name: currentUser.username, tag: currentUser.tag, uid: currentUser.uid, lastMsg: text, timestamp });
-                        } else if (activeChat.type === 'group') {
-                            await window.fb.update(window.fb.ref(db, `groups/${activeChat.id}`), { lastMsg: text, timestamp });
-                        }
-                    }
-                } catch (e) { setInputText(text); }
+            const sendMessageWithMedia = async (url, type) => { 
+                if (!activeChat) return; 
+                const db = dbRef.current; 
+                const timestamp = Date.now(); 
+                const msgText = type === 'image' ? '📷 រូបភាព' : type === 'video' ? '🎥 វីដេអូ' : '🎤 សំឡេង'; 
+                const msgData = { 
+                    text: msgText, 
+                    fileUrl: url, 
+                    type: type, 
+                    senderId: currentUser.uid, 
+                    senderName: currentUser.username,
+                    senderPhotoUrl: currentUser.photoUrl || '', 
+                    createdAt: timestamp 
+                }; 
+                await window.fb.push(window.fb.ref(db, `messages/${activeChat.id}`), msgData); 
+                if (activeChat.type === 'direct') { 
+                    await window.fb.update(window.fb.ref(db, `user_chats/${currentUser.uid}/${activeChat.partnerId}`), { lastMsg: msgText, timestamp }); 
+                    await window.fb.update(window.fb.ref(db, `user_chats/${activeChat.partnerId}/${currentUser.uid}`), { lastMsg: msgText, timestamp }); 
+                } else { 
+                    await window.fb.update(window.fb.ref(db, `groups/${activeChat.id}`), { lastMsg: msgText, timestamp }); 
+                } 
+            };
+            const handleSendMessage = async (e) => { 
+                e.preventDefault(); 
+                if (!inputText.trim() || !activeChat) return; 
+                const text = inputText; 
+                setInputText(''); 
+                const db = dbRef.current; 
+                const timestamp = Date.now(); 
+                try { 
+                    if (editingMessageId) { 
+                        await window.fb.update(window.fb.ref(db, `messages/${activeChat.id}/${editingMessageId}`), { text: text, updatedAt: timestamp }); 
+                        setEditingMessageId(null); 
+                    } else { 
+                        await window.fb.push(window.fb.ref(db, `messages/${activeChat.id}`), { 
+                            text: text, 
+                            type: 'text', 
+                            senderId: currentUser.uid, 
+                            senderName: currentUser.username,
+                            senderPhotoUrl: currentUser.photoUrl || '',
+                            createdAt: timestamp 
+                        }); 
+                        if (activeChat.type === 'direct') { 
+                            await window.fb.update(window.fb.ref(db, `user_chats/${currentUser.uid}/${activeChat.partnerId}`), { name: activeChat.name, tag: activeChat.tag, uid: activeChat.partnerId, lastMsg: text, timestamp }); 
+                            await window.fb.update(window.fb.ref(db, `user_chats/${activeChat.partnerId}/${currentUser.uid}`), { name: currentUser.username, tag: currentUser.tag, uid: currentUser.uid, lastMsg: text, timestamp }); 
+                        } else if (activeChat.type === 'group') { 
+                            await window.fb.update(window.fb.ref(db, `groups/${activeChat.id}`), { lastMsg: text, timestamp }); 
+                        } 
+                    } 
+                } catch (e) { setInputText(text); } 
             };
 
             const handleRegister = async (name) => { if (!name.trim()) return; const db = dbRef.current; const newUid = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5); const cleanName = name.replace(/\s+/g, '').substring(0, 10); const randomSuffix = Math.floor(100 + Math.random() * 900); const newUsername = `@${cleanName}_${randomSuffix}`; const userData = { username: name, tag: newUsername, deviceId: deviceIdRef.current, createdAt: Date.now() }; try { await window.fb.set(window.fb.ref(db, `users/${newUid}`), userData); await window.fb.set(window.fb.ref(db, `usernames/${newUsername}`), newUid); localStorage.setItem('chat_app_uid', newUid); setCurrentUser({ uid: newUid, ...userData }); setView('home'); } catch (e) { alert("បរាជ័យក្នុងការបង្កើតគណនី។"); } };
@@ -767,7 +802,10 @@
                                     {groupMembers.map(m => (
                                         <div key={m.uid} onClick={() => handleMemberClick(m)} className="flex justify-between items-center bg-gray-50 p-2 rounded cursor-pointer hover:bg-gray-100">
                                             <span className="text-sm flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200">{m.photoUrl ? <img src={m.photoUrl} className="w-full h-full object-cover"/> : <UserIcon className="w-full h-full p-1"/>}</div>
+                                                <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 relative">
+                                                    {m.photoUrl ? <img src={m.photoUrl} className="w-full h-full object-cover"/> : <UserIcon className="w-full h-full p-1"/>}
+                                                    {m.status === 'online' && <div className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-green-500 border border-white"></div>}
+                                                </div>
                                                 {m.username} 
                                                 <span className="text-xs text-gray-400">{m.tag}</span>
                                                 {m.uid !== currentUser.uid && <span className="text-[10px] bg-blue-100 text-blue-600 px-1 rounded">Chat</span>}
@@ -812,11 +850,26 @@
                                 const showReactions = activeReactionId === msg.id;
                                 return (
                                     <div key={msg.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} group relative items-end`}>
+                                        {/* Telegram-style Group Avatar: Only for received messages in groups */}
+                                        {!isMe && activeChat.type === 'group' && (
+                                            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mb-1 mr-1 bg-gray-300">
+                                                {msg.senderPhotoUrl ? (
+                                                    <img src={msg.senderPhotoUrl} className="w-full h-full object-cover" alt={msg.senderName} />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-xs font-bold text-white bg-blue-400">
+                                                        {msg.senderName ? msg.senderName[0].toUpperCase() : '?'}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
                                         <div className={`flex items-end gap-2 max-w-[85%] sm:max-w-[70%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                                             {isMe && <button onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg.id); }} className={`p-2 rounded-full bg-white shadow text-red-500 flex-shrink-0 ${showDelete ? 'opacity-100 scale-100' : 'opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 hidden group-hover:block'}`}><TrashIcon className="w-4 h-4" /></button>}
-                                            <div className="flex flex-col relative">
+                                            <div className="flex flex-col relative w-full">
                                                 {showReactions && (<div className="absolute -top-12 left-0 bg-white shadow-lg rounded-full px-3 py-1 flex gap-2 z-10 animate-slideIn border">{['❤️', '🙏', '😁', '😂'].map(emoji => (<button key={emoji} onClick={(e) => { e.stopPropagation(); handleAddReaction(msg.id, emoji); }} className="text-xl hover:scale-125 transition">{emoji}</button>))}</div>)}
-                                                {!isMe && activeChat.type === 'group' && <span className="text-[10px] text-gray-500 ml-2 mb-1">{msg.senderName}</span>}
+                                                
+                                                {/* Sender Name in Group (Inside/Above Bubble) */}
+                                                {!isMe && activeChat.type === 'group' && <span className="text-[10px] text-blue-600 font-bold ml-2 mb-0.5">{msg.senderName}</span>}
                                                 
                                                 <div 
                                                     onTouchStart={() => handleTouchStart(msg.id)} 

@@ -175,7 +175,7 @@
             // UI States
             const [isInputFocused, setIsInputFocused] = useState(false);
             const [uploadingItem, setUploadingItem] = useState(null); 
-            const [longPressReactionId, setLongPressReactionId] = useState(null);
+            const [activeReactionId, setActiveReactionId] = useState(null);
 
             // Refs
             const appRef = useRef(null);
@@ -544,15 +544,42 @@
             };
             const handleEditMessage = (msg) => { if (msg.type !== 'text') return; setEditingMessageId(msg.id); setInputText(msg.text); setMobileDeleteId(null); setTimeout(() => inputRef.current?.focus(), 100); };
             const handleTouchStart = (msgId) => { longPressTimerRef.current = setTimeout(() => { setMobileDeleteId(msgId); longPressTimerRef.current = null; }, 500); };
-            const handleTouchEnd = (msg) => { if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; if (mobileDeleteId !== msg.id) handleEditMessage(msg); else setMobileDeleteId(null); } };
-            const handleClick = (msg) => { if (window.matchMedia("(hover: hover)").matches) handleEditMessage(msg); };
+            
+            // Update Mobile Tap Logic (inside handleTouchEnd)
+            const handleTouchEnd = (msg) => { 
+                if (longPressTimerRef.current) { 
+                    clearTimeout(longPressTimerRef.current); 
+                    longPressTimerRef.current = null; 
+                    // If mobile delete is not active for this message
+                    if (mobileDeleteId !== msg.id) {
+                         // Tap -> Toggle Reactions
+                         setActiveReactionId(prev => prev === msg.id ? null : msg.id);
+                    } else { 
+                        setMobileDeleteId(null); 
+                    } 
+                } 
+            };
+            
+            // Update handleClick (Desktop Left Click)
+            const handleClick = (msg) => {
+                if (window.matchMedia("(hover: hover)").matches) {
+                    // Desktop Left Click -> Edit (Keep existing or remove? User didn't say remove, but usually click is interaction. Let's keep Edit for Left Click on Desktop as per previous context)
+                    handleEditMessage(msg);
+                }
+            };
+
+            // Update Context Menu Handler
+            const handleContextMenu = (e, msgId) => {
+                e.preventDefault(); // Prevent browser context menu
+                setActiveReactionId(prev => prev === msgId ? null : msgId);
+            };
             
             const handleAddReaction = async (msgId, emoji) => {
                 const db = dbRef.current;
                 const reactionRef = window.fb.ref(db, `messages/${activeChat.id}/${msgId}/reactions/${currentUser.uid}`);
                 const snapshot = await window.fb.get(reactionRef);
                 if (snapshot.exists() && snapshot.val() === emoji) { await window.fb.remove(reactionRef); } else { await window.fb.set(reactionRef, emoji); }
-                setLongPressReactionId(null);
+                setActiveReactionId(null); // Close after reacting
             };
 
             const getSeenInfo = (msg) => {
@@ -805,7 +832,9 @@
                                         </div>
                                     ))}
                                 </div>
-                            ) : (<p className="text-xs text-gray-500 italic">បញ្ជីសមាជិកត្រូវបានលាក់ដោយម្ចាស់ក្រុម។</p>)}
+                            ) : (
+                                <p className="text-xs text-gray-500 italic">បញ្ជីសមាជិកត្រូវបានលាក់ដោយម្ចាស់ក្រុម។</p>
+                            )}
                             
                             {isOwner && groupBlocked.length > 0 && (<div><p className="text-sm font-bold mb-2 text-red-600">អ្នកដែលត្រូវបាន Block</p><div className="space-y-2">{groupBlocked.map(b => (<div key={b.uid} className="flex justify-between items-center bg-red-50 p-2 rounded border border-red-100"><span className="text-sm text-gray-600">{b.username}</span><button onClick={() => handleUnblockMember(b.uid)} className="text-green-600 text-xs font-bold">Unblock</button></div>))}</div></div>)}
                         </div>
@@ -824,11 +853,11 @@
                             </div>
                         </div>
                         
-                        <div className="flex-1 overflow-y-auto p-2 space-y-4 bg-gray-100" onClick={() => { setMobileDeleteId(null); setLongPressReactionId(null); }}>
+                        <div className="flex-1 overflow-y-auto p-2 space-y-4 bg-gray-100" onClick={() => { setMobileDeleteId(null); setActiveReactionId(null); }}>
                             {messages.map((msg) => { 
                                 const isMe = msg.senderId === currentUser.uid; 
                                 const showDelete = mobileDeleteId === msg.id; 
-                                const showReactions = longPressReactionId === msg.id;
+                                const showReactions = activeReactionId === msg.id;
                                 return (
                                     <div key={msg.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} group relative items-end`}>
                                         <div className={`flex items-end gap-2 max-w-[85%] sm:max-w-[70%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -836,7 +865,14 @@
                                             <div className="flex flex-col relative">
                                                 {showReactions && (<div className="absolute -top-12 left-0 bg-white shadow-lg rounded-full px-3 py-1 flex gap-2 z-10 animate-slideIn border">{['❤️', '🙏', '😁', '😂'].map(emoji => (<button key={emoji} onClick={(e) => { e.stopPropagation(); handleAddReaction(msg.id, emoji); }} className="text-xl hover:scale-125 transition">{emoji}</button>))}</div>)}
                                                 {!isMe && activeChat.type === 'group' && <span className="text-[10px] text-gray-500 ml-2 mb-1">{msg.senderName}</span>}
-                                                <div onTouchStart={() => handleTouchStart(msg.id)} onTouchEnd={handleTouchEnd} onClick={(e) => { if (window.matchMedia("(hover: hover)").matches && isMe) { e.stopPropagation(); handleEditMessage(msg); } }} className={`px-4 py-2 rounded-2xl shadow-sm text-sm cursor-pointer select-none message-bubble relative overflow-hidden ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none'}`}>
+                                                
+                                                <div 
+                                                    onTouchStart={() => handleTouchStart(msg.id)} 
+                                                    onTouchEnd={() => handleTouchEnd(msg)}
+                                                    onClick={(e) => { if (window.matchMedia("(hover: hover)").matches && isMe) { e.stopPropagation(); handleEditMessage(msg); } }} 
+                                                    onContextMenu={(e) => handleContextMenu(e, msg.id)}
+                                                    className={`px-4 py-2 rounded-2xl shadow-sm text-sm cursor-pointer select-none message-bubble relative overflow-hidden ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none'}`}
+                                                >
                                                     {msg.type === 'image' ? ( <img src={msg.fileUrl} className="rounded-lg max-h-60 object-cover" /> ) : msg.type === 'video' ? ( <video src={msg.fileUrl} controls onPlay={handleMediaPlay} className="rounded-lg max-h-60 w-full" /> ) : msg.type === 'audio' ? ( <audio src={msg.fileUrl} controls onPlay={handleMediaPlay} className="w-full min-w-[150px] max-w-[240px]" /> ) : ( <span className="break-words">{msg.text}</span> )}
                                                     <div className="flex justify-end items-center gap-1 mt-1 opacity-70"><span className="text-[9px] italic">{msg.updatedAt ? 'កែ' : ''} {new Date(msg.createdAt).toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'})}</span>{isMe && getSeenInfo(msg)}</div>
                                                 </div>

@@ -106,6 +106,7 @@
         const EyeIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>);
         const CheckDoubleIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 12l5 5L17 7"></path><path d="M12 5l5 5L22 7"></path></svg>);
         const PhoneOffIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>);
+        const CheckIconSimple = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"></polyline></svg>);
 
         function LoginView({ onRegister, onLogin }) {
             const [mode, setMode] = useState('register'); 
@@ -140,127 +141,11 @@
             );
         }
 
-        // --- Incoming Call Component ---
-        function IncomingCallModal({ call, onAnswer, onDecline }) {
-            return (
-                <div className="absolute inset-0 z-50 bg-gray-900/90 flex flex-col items-center justify-center text-white p-4 animate-slideIn">
-                    <div className="w-32 h-32 rounded-full bg-gray-700 flex items-center justify-center mb-6 ripple-effect relative">
-                        {call.caller.photoUrl ? (
-                            <img src={call.caller.photoUrl} className="w-28 h-28 rounded-full object-cover z-10" />
-                        ) : (
-                            <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-500 z-10 flex items-center justify-center"><UserIcon className="w-12 h-12"/></div>
-                        )}
-                    </div>
-                    <h2 className="text-2xl font-bold mb-1">{call.caller.name}</h2>
-                    <p className="text-gray-300 mb-12 animate-pulse">
-                        {call.type === 'video' ? 'កំពុងហៅវីដេអូ...' : 'កំពុងហៅសំឡេង...'} 
-                        {call.target.type === 'group' && <span className="block text-sm mt-1 text-gray-400">ពីក្រុម: {call.target.name}</span>}
-                    </p>
-                    
-                    <div className="flex gap-8">
-                         <button onClick={onDecline} className="flex flex-col items-center gap-2">
-                            <div className="p-4 bg-red-600 rounded-full hover:bg-red-700 shadow-lg transition transform hover:scale-110">
-                                <PhoneOffIcon className="w-8 h-8" />
-                            </div>
-                            <span className="text-sm font-medium">បដិសេធ</span>
-                        </button>
-                        <button onClick={onAnswer} className="flex flex-col items-center gap-2">
-                            <div className="p-4 bg-green-500 rounded-full hover:bg-green-600 shadow-lg transition transform hover:scale-110 animate-bounce">
-                                {call.type === 'video' ? <VideoCallIcon className="w-8 h-8" /> : <PhoneIcon className="w-8 h-8" />}
-                            </div>
-                            <span className="text-sm font-medium">ទទួល</span>
-                        </button>
-                    </div>
-                </div>
-            );
-        }
-
-        // --- Active Call Component ---
-        function ActiveCallModal({ call, currentUser, onEndCall }) {
-            const [cameraOn, setCameraOn] = useState(true);
-            const [micOn, setMicOn] = useState(true);
-            const localVideoRef = useRef(null);
-
-            useEffect(() => {
-                let localStream;
-                const startStream = async () => {
-                    try {
-                        if (call.type === 'video' && cameraOn) {
-                            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                            if (localVideoRef.current) localVideoRef.current.srcObject = localStream;
-                        } else if (micOn) {
-                            // Just audio if video off or audio call
-                             localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        }
-                    } catch(e) { console.error("Stream error", e); }
-                };
-                startStream();
-                return () => { if(localStream) localStream.getTracks().forEach(track => track.stop()); };
-            }, [cameraOn, micOn, call.type]);
-
-            const participants = call.participants ? Object.keys(call.participants).length : 1;
-
-            return (
-                <div className="absolute inset-0 z-50 bg-gray-900 flex flex-col text-white">
-                    {/* Header */}
-                    <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10 bg-gradient-to-b from-black/50 to-transparent">
-                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-xs">{call.target.name[0]}</div>
-                            <div>
-                                <h3 className="font-bold text-sm">{call.target.name}</h3>
-                                <p className="text-xs text-gray-300">{call.status === 'active' ? (participants > 1 ? `${participants} នាក់នៅក្នុងការហៅ` : 'កំពុងភ្ជាប់...') : 'កំពុងហៅ...'}</p>
-                            </div>
-                         </div>
-                    </div>
-
-                    {/* Main Video Area (Simulation) */}
-                    <div className="flex-1 flex items-center justify-center relative bg-gray-800 overflow-hidden">
-                         {/* If Video Call, show local camera (Self View) */}
-                         {call.type === 'video' && cameraOn ? (
-                             <video ref={localVideoRef} autoPlay muted playsInline className="absolute inset-0 w-full h-full object-cover" />
-                         ) : (
-                             <div className="flex flex-col items-center">
-                                 <div className="w-24 h-24 rounded-full bg-gray-600 flex items-center justify-center mb-4">
-                                     {call.caller.photoUrl ? <img src={call.caller.photoUrl} className="w-full h-full rounded-full object-cover"/> : <UserIcon className="w-12 h-12"/>}
-                                 </div>
-                                 <p className="text-xl">{call.caller.name}</p>
-                             </div>
-                         )}
-                         
-                         {/* Simulated Remote Video (Placeholder for group) */}
-                         {call.type === 'video' && participants > 1 && (
-                             <div className="absolute top-20 right-4 w-24 h-32 bg-black rounded-lg border border-white/20 flex items-center justify-center">
-                                 <span className="text-xs text-gray-400">អ្នកផ្សេង...</span>
-                             </div>
-                         )}
-                    </div>
-
-                    {/* Controls */}
-                    <div className="p-6 bg-black/40 backdrop-blur-sm flex justify-center items-center gap-6 rounded-t-3xl">
-                        <button onClick={() => setMicOn(!micOn)} className={`p-3 rounded-full transition ${micOn ? 'bg-gray-600 hover:bg-gray-500' : 'bg-white text-black'}`}>
-                            <MicIcon className="w-6 h-6" />
-                        </button>
-                        
-                        {call.type === 'video' && (
-                            <button onClick={() => setCameraOn(!cameraOn)} className={`p-3 rounded-full transition ${cameraOn ? 'bg-gray-600 hover:bg-gray-500' : 'bg-white text-black'}`}>
-                                <VideoCallIcon className="w-6 h-6" />
-                            </button>
-                        )}
-
-                        <button onClick={onEndCall} className="p-4 bg-red-600 rounded-full hover:bg-red-700 shadow-lg transform transition active:scale-95">
-                            <PhoneOffIcon className="w-8 h-8" />
-                        </button>
-                    </div>
-                </div>
-            );
-        }
-
         function App() {
             const [firebaseReady, setFirebaseReady] = useState(false);
             const [view, setView] = useState('loading');
             const [currentUser, setCurrentUser] = useState(null);
             
-            // Data States
             const [directChats, setDirectChats] = useState([]);
             const [myGroupIds, setMyGroupIds] = useState([]);
             const [allGroupsData, setAllGroupsData] = useState({});
@@ -277,35 +162,31 @@
             const [isRecording, setIsRecording] = useState(false);
             const [mediaRecorder, setMediaRecorder] = useState(null);
             
-            // Modals
             const [showPasswordModal, setShowPasswordModal] = useState(false);
             const [newPassword, setNewPassword] = useState('');
             const [showGroupModal, setShowGroupModal] = useState(false);
             const [showSettingsModal, setShowSettingsModal] = useState(false);
             const [showProfileModal, setShowProfileModal] = useState(false);
             const [isUploadingProfile, setIsUploadingProfile] = useState(false);
-            const [showSeenByModal, setShowSeenByModal] = useState(false);
-            const [seenByUsers, setSeenByUsers] = useState([]);
-
-            // CALL STATES
-            const [incomingCall, setIncomingCall] = useState(null); 
-            const [activeCallSession, setActiveCallSession] = useState(null);
-
+            const [showCallModal, setShowCallModal] = useState(null);
+            const [isSettingsLoading, setIsSettingsLoading] = useState(false); // Settings Loading State
+            
             const [groupName, setGroupName] = useState('');
             const [groupJoinCode, setGroupJoinCode] = useState('');
             const [groupMembers, setGroupMembers] = useState([]);
             const [groupBlocked, setGroupBlocked] = useState([]);
             const [addMemberQuery, setAddMemberQuery] = useState('');
             
-            // UI States
+            const [isEditingGroupName, setIsEditingGroupName] = useState(false);
+            const [editedGroupName, setEditedGroupName] = useState('');
+            const [isUploadingGroupProfile, setIsUploadingGroupProfile] = useState(false);
+
             const [isInputFocused, setIsInputFocused] = useState(false);
             const [uploadingItem, setUploadingItem] = useState(null); 
             const [activeReactionId, setActiveReactionId] = useState(null);
             
-            // Partner Status State (Online/Offline)
             const [partnerStatus, setPartnerStatus] = useState(null);
 
-            // Refs
             const appRef = useRef(null);
             const dbRef = useRef(null);
             const messagesEndRef = useRef(null);
@@ -315,9 +196,9 @@
             const imageInputRef = useRef(null);
             const videoInputRef = useRef(null);
             const profileImageInputRef = useRef(null);
+            const groupProfileInputRef = useRef(null);
             const currentPlayingMediaRef = useRef(null);
 
-            // --- Media Playback Logic ---
             const handleMediaPlay = (event) => {
                 const mediaElement = event.target;
                 if (currentPlayingMediaRef.current && currentPlayingMediaRef.current !== mediaElement) {
@@ -326,7 +207,6 @@
                 currentPlayingMediaRef.current = mediaElement;
             };
 
-            // 1. Initialize Firebase
             useEffect(() => {
                 const initFirebase = () => {
                     if (window.fb) {
@@ -367,7 +247,6 @@
                 return () => window.removeEventListener('firebase-ready', initFirebase);
             }, []);
 
-            // 2. Auth & Presence System
             useEffect(() => {
                 if (!firebaseReady) return;
                 const checkAuth = async () => {
@@ -389,7 +268,6 @@
                 checkAuth();
             }, [firebaseReady]);
 
-            // Presence System Implementation
             useEffect(() => {
                 if (!currentUser || !firebaseReady) return;
                 const db = dbRef.current;
@@ -401,7 +279,6 @@
                     if (snap.val() === true) {
                         window.fb.onDisconnect(userStatusRef).set("offline");
                         window.fb.onDisconnect(userLastSeenRef).set(window.fb.serverTimestamp());
-                        
                         window.fb.set(userStatusRef, "online");
                         window.fb.set(userLastSeenRef, window.fb.serverTimestamp());
                     }
@@ -409,7 +286,6 @@
                 return () => unsubscribe();
             }, [currentUser, firebaseReady]);
 
-            // Listen to Partner Status (Online/Offline)
             useEffect(() => {
                 if (view === 'chat' && activeChat && activeChat.type === 'direct' && firebaseReady) {
                     const db = dbRef.current;
@@ -428,7 +304,6 @@
             }, [view, activeChat, firebaseReady]);
 
 
-            // 3. Data Fetching
             useEffect(() => {
                 if (view !== 'home' || !currentUser || !firebaseReady) return;
                 const db = dbRef.current;
@@ -468,7 +343,6 @@
                 setAllChats(merged);
             }, [directChats, myGroupIds, allGroupsData]);
 
-            // --- Handlers ---
             const uploadToCloudinary = async (file, resourceType = 'auto') => {
                 const formData = new FormData(); formData.append('file', file); formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET); 
                 try { const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, { method: 'POST', body: formData }); const data = await res.json(); if(data.error) throw new Error(data.error.message); return data.secure_url; } catch (error) { alert("បរាជ័យ៖ " + error.message); throw error; }
@@ -491,7 +365,6 @@
                 try { await window.fb.update(window.fb.ref(dbRef.current, `users/${currentUser.uid}`), { password: newPassword }); setNewPassword(''); alert("Password ត្រូវបានផ្លាស់ប្តូរ!"); } catch(e) { alert("បរាជ័យ។"); }
             };
 
-            // ... (Recording, Message Sending, Auth handlers same as before) ...
              const startRecording = async () => { try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); const recorder = new MediaRecorder(stream); const chunks = []; recorder.ondataavailable = e => chunks.push(e.data); recorder.onstop = async () => { const blob = new Blob(chunks, { type: 'audio/ogg; codecs=opus' }); const previewUrl = URL.createObjectURL(blob); setUploadingItem({ id: 'temp_audio_' + Date.now(), type: 'audio', fileUrl: previewUrl, text: '🎤 សំឡេង', senderId: currentUser.uid, createdAt: Date.now(), status: 'uploading' }); try { const url = await uploadToCloudinary(blob, 'video'); await sendMessageWithMedia(url, 'audio'); setUploadingItem(null); } catch (e) { setUploadingItem(null); } }; recorder.start(); setMediaRecorder(recorder); setIsRecording(true); } catch (err) { alert("មិនអាចបើកមីក្រូហ្វូនបានទេ។"); } };
             const stopRecording = () => { if (mediaRecorder) { mediaRecorder.stop(); setIsRecording(false); setMediaRecorder(null); } };
             const sendMessageWithMedia = async (url, type) => { 
@@ -566,11 +439,113 @@
             const getSeenInfo = (msg) => { if (!msg.seenBy) return null; const seenUids = Object.keys(msg.seenBy).filter(uid => uid !== currentUser.uid); if (seenUids.length === 0) return null; if (activeChat.type === 'direct') return seenUids.includes(activeChat.partnerId) ? <CheckDoubleIcon className="w-4 h-4 text-blue-500" /> : null; else return (<div className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer hover:text-blue-500" onClick={(e) => { e.stopPropagation(); handleShowSeenBy(seenUids); }}><EyeIcon className="w-3 h-3"/> {seenUids.length}</div>); };
             const handleSearch = async (e) => { e.preventDefault(); setSearchResult(null); setSearchError(''); if (!searchQuery.startsWith('@')) { setSearchError("ឈ្មោះសម្គាល់ត្រូវចាប់ផ្តើមដោយ @"); return; } const db = dbRef.current; try { const snapshot = await window.fb.get(window.fb.ref(db, `usernames/${searchQuery.trim()}`)); if (snapshot.exists()) { const partnerUid = snapshot.val(); if (partnerUid === currentUser.uid) { setSearchError("នេះជាគណនីរបស់អ្នក!"); return; } const partnerSnapshot = await window.fb.get(window.fb.ref(db, `users/${partnerUid}`)); if (partnerSnapshot.exists()) setSearchResult({ uid: partnerUid, ...partnerSnapshot.val() }); } else { setSearchError("រកមិនឃើញអ្នកប្រើប្រាស់នេះទេ។"); } } catch (e) { setSearchError("មានបញ្ហា។"); } };
             const copyToClipboard = (text) => { const textArea = document.createElement("textarea"); textArea.value = text; textArea.style.position = "fixed"; textArea.style.left = "-9999px"; document.body.appendChild(textArea); textArea.focus(); textArea.select(); try { document.execCommand('copy'); alert("បានចម្លង: " + text); } catch (err) {} document.body.removeChild(textArea); };
-            const toggleGroupSetting = async (key) => { const oldSettings = allGroupsData[activeChat.id]?.settings || { viewMembers: true, addMembers: true }; const newSettings = { ...oldSettings, [key]: !oldSettings[key] }; setAllGroupsData(prev => ({ ...prev, [activeChat.id]: { ...prev[activeChat.id], settings: newSettings } })); try { await window.fb.update(window.fb.ref(dbRef.current, `groups/${activeChat.id}/settings`), { [key]: newSettings[key] }); } catch (e) { console.error(e); } };
-            const fetchGroupSettings = async () => { if (!activeChat || activeChat.type !== 'group') return; const db = dbRef.current; const membersSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/members`)); const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/blocked`)); const membersList = []; if (membersSnap.exists()) { for (const mid of Object.keys(membersSnap.val())) { const userSnap = await window.fb.get(window.fb.ref(db, `users/${mid}`)); if (userSnap.exists()) membersList.push({ uid: mid, ...userSnap.val() }); } } const blockedList = []; if (blockedSnap.exists()) { for (const bid of Object.keys(blockedSnap.val())) { const userSnap = await window.fb.get(window.fb.ref(db, `users/${bid}`)); if (userSnap.exists()) blockedList.push({ uid: bid, ...userSnap.val() }); } } setGroupMembers(membersList); setGroupBlocked(blockedList); setShowSettingsModal(true); };
-            const handleAddMember = async () => { if (!addMemberQuery.trim()) return; const db = dbRef.current; try { const snap = await window.fb.get(window.fb.ref(db, `usernames/${addMemberQuery.trim()}`)); if (!snap.exists()) { alert("រកមិនឃើញ Username នេះទេ។"); return; } const uidToAdd = snap.val(); const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/blocked/${uidToAdd}`)); if (blockedSnap.exists()) { alert("អ្នកប្រើប្រាស់នេះកំពុងជាប់ Block។"); return; } await window.fb.set(window.fb.ref(db, `groups/${activeChat.id}/members/${uidToAdd}`), true); await window.fb.set(window.fb.ref(db, `user_groups/${uidToAdd}/${activeChat.id}`), true); setAddMemberQuery(''); fetchGroupSettings(); alert("បានបន្ថែមសមាជិក។"); } catch (e) { alert("មានបញ្ហា។"); } };
-            const handleRemoveMember = async (memberId) => { if (!window.confirm("ដកសមាជិក?")) return; const db = dbRef.current; try { await window.fb.remove(window.fb.ref(db, `groups/${activeChat.id}/members/${memberId}`)); await window.fb.remove(window.fb.ref(db, `user_groups/${memberId}/${activeChat.id}`)); await window.fb.set(window.fb.ref(db, `groups/${activeChat.id}/blocked/${memberId}`), true); fetchGroupSettings(); } catch (e) {} };
-            const handleUnblockMember = async (memberId) => { const db = dbRef.current; try { await window.fb.remove(window.fb.ref(db, `groups/${activeChat.id}/blocked/${memberId}`)); fetchGroupSettings(); } catch (e) {} };
+            
+            // Instant Open Settings Handler
+            const openGroupSettings = () => {
+                if (!activeChat || activeChat.type !== 'group') return;
+                setShowSettingsModal(true); // Show modal instantly
+                // Fetch data in background if needed, handled by effect
+            };
+
+            const toggleGroupSetting = async (key) => {
+                const oldSettings = allGroupsData[activeChat.id]?.settings || { viewMembers: true, addMembers: true };
+                const newSettings = { ...oldSettings, [key]: !oldSettings[key] };
+                
+                // Optimistic UI Update
+                setAllGroupsData(prev => ({
+                    ...prev,
+                    [activeChat.id]: {
+                        ...prev[activeChat.id],
+                        settings: newSettings
+                    }
+                }));
+
+                // Background Update
+                try { 
+                    await window.fb.update(window.fb.ref(dbRef.current, `groups/${activeChat.id}/settings`), { [key]: newSettings[key] }); 
+                } catch (e) { console.error(e); }
+            };
+
+            // Unified Settings Fetch Effect
+            useEffect(() => {
+                if (showSettingsModal && activeChat?.type === 'group') {
+                    const loadSettings = async () => {
+                        setIsSettingsLoading(true);
+                        const db = dbRef.current;
+                        // Initialize with empty lists to avoid showing stale data
+                        setGroupMembers([]); 
+                        setGroupBlocked([]);
+                        setEditedGroupName(allGroupsData[activeChat.id]?.name || activeChat.name);
+
+                        const membersSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/members`));
+                        const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/blocked`));
+                        
+                        const membersList = [];
+                        if (membersSnap.exists()) {
+                            for (const mid of Object.keys(membersSnap.val())) {
+                                const userSnap = await window.fb.get(window.fb.ref(db, `users/${mid}`));
+                                if (userSnap.exists()) membersList.push({ uid: mid, ...userSnap.val() });
+                            }
+                        }
+                        
+                        const blockedList = [];
+                        if (blockedSnap.exists()) {
+                            for (const bid of Object.keys(blockedSnap.val())) {
+                                const userSnap = await window.fb.get(window.fb.ref(db, `users/${bid}`));
+                                if (userSnap.exists()) blockedList.push({ uid: bid, ...userSnap.val() });
+                            }
+                        }
+                        setGroupMembers(membersList); 
+                        setGroupBlocked(blockedList);
+                        setIsSettingsLoading(false);
+                    };
+                    loadSettings();
+                }
+            }, [showSettingsModal, activeChat]); // Runs when modal opens
+
+            // Update Name Handler
+            const handleUpdateGroupName = async () => {
+                if (!editedGroupName.trim()) return;
+                try {
+                    await window.fb.update(window.fb.ref(dbRef.current, `groups/${activeChat.id}`), { name: editedGroupName });
+                    setIsEditingGroupName(false);
+                    // activeChat.name will update automatically if we used it from allGroupsData, 
+                    // but since activeChat is state, we might need to update it for current session view if not using allGroupsData for header
+                } catch (e) { alert("បរាជ័យ។"); }
+            };
+
+            // Update Group Profile Handler
+            const handleUpdateGroupProfile = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setIsUploadingGroupProfile(true);
+                try {
+                    const url = await uploadToCloudinary(file, 'image');
+                    await window.fb.update(window.fb.ref(dbRef.current, `groups/${activeChat.id}`), { photoUrl: url });
+                } catch (e) { alert("បរាជ័យ។"); }
+                finally { setIsUploadingGroupProfile(false); e.target.value = null; }
+            };
+
+            const handleAddMember = async () => {
+                if (!addMemberQuery.trim()) return;
+                const db = dbRef.current;
+                try {
+                    const snap = await window.fb.get(window.fb.ref(db, `usernames/${addMemberQuery.trim()}`));
+                    if (!snap.exists()) { alert("រកមិនឃើញ Username នេះទេ។"); return; }
+                    const uidToAdd = snap.val();
+                    const blockedSnap = await window.fb.get(window.fb.ref(db, `groups/${activeChat.id}/blocked/${uidToAdd}`));
+                    if (blockedSnap.exists()) { alert("អ្នកប្រើប្រាស់នេះកំពុងជាប់ Block។"); return; }
+                    await window.fb.set(window.fb.ref(db, `groups/${activeChat.id}/members/${uidToAdd}`), true);
+                    await window.fb.set(window.fb.ref(db, `user_groups/${uidToAdd}/${activeChat.id}`), true);
+                    setAddMemberQuery(''); 
+                    // Re-fetch to update list immediately
+                     const userSnap = await window.fb.get(window.fb.ref(db, `users/${uidToAdd}`));
+                     if(userSnap.exists()) setGroupMembers(prev => [...prev, { uid: uidToAdd, ...userSnap.val() }]);
+                    alert("បានបន្ថែមសមាជិក។");
+                } catch (e) { alert("មានបញ្ហា។"); }
+            };
+            const handleRemoveMember = async (memberId) => { if (!window.confirm("ដកសមាជិក?")) return; const db = dbRef.current; try { await window.fb.remove(window.fb.ref(db, `groups/${activeChat.id}/members/${memberId}`)); await window.fb.remove(window.fb.ref(db, `user_groups/${memberId}/${activeChat.id}`)); await window.fb.set(window.fb.ref(db, `groups/${activeChat.id}/blocked/${memberId}`), true); setGroupMembers(prev => prev.filter(m => m.uid !== memberId)); } catch (e) {} };
+            const handleUnblockMember = async (memberId) => { const db = dbRef.current; try { await window.fb.remove(window.fb.ref(db, `groups/${activeChat.id}/blocked/${memberId}`)); setGroupBlocked(prev => prev.filter(b => b.uid !== memberId)); } catch (e) {} };
             const handleMemberClick = (member) => { if (member.uid === currentUser.uid) return; startChat({ uid: member.uid, username: member.username, tag: member.tag }); setShowSettingsModal(false); };
             useEffect(() => { if (view !== 'chat' || !activeChat || !firebaseReady) return; const db = dbRef.current; const messagesRef = window.fb.ref(db, `messages/${activeChat.id}`); const unsubscribe = window.fb.onValue(messagesRef, (snapshot) => { const data = snapshot.val(); const msgs = []; if (data) { Object.keys(data).forEach(key => { const msg = { id: key, ...data[key] }; if (msg.senderId !== currentUser.uid) { if (!msg.seenBy || !msg.seenBy[currentUser.uid]) { window.fb.update(window.fb.ref(db, `messages/${activeChat.id}/${key}/seenBy`), { [currentUser.uid]: true }); } } msgs.push(msg); }); } msgs.sort((a, b) => a.createdAt - b.createdAt); setMessages(msgs); }); return () => unsubscribe(); }, [view, activeChat, firebaseReady]);
             useEffect(() => { if(view === 'chat') messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, view, uploadingItem]);
@@ -746,6 +721,10 @@
                 const currentGroupSettings = activeChat.type === 'group' 
                     ? (allGroupsData[activeChat.id]?.settings || { viewMembers: true, addMembers: true }) 
                     : null;
+                    
+                // Current Chat Info (Prefer Realtime Data)
+                const displayChatName = (activeChat.type === 'group' ? allGroupsData[activeChat.id]?.name : activeChat.name) || activeChat.name;
+                const displayChatPhoto = (activeChat.type === 'group' ? allGroupsData[activeChat.id]?.photoUrl : activeChat.photoUrl);
 
                 return (
                     <div className="flex flex-col h-full bg-gray-100 font-battambang max-w-md mx-auto shadow-2xl relative">
@@ -769,10 +748,48 @@
                         )}
 
 
-                        {showSettingsModal && (<div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><div className="bg-white p-4 rounded-2xl w-full max-w-sm shadow-xl modal-content h-[80vh] flex flex-col"><div className="flex justify-between items-center mb-4 border-b pb-2"><h3 className="font-bold text-lg">ការកំណត់ក្រុម: {activeChat.name}</h3><button onClick={() => setShowSettingsModal(false)}><XIcon className="w-6 h-6 text-gray-500"/></button></div><div className="mb-4 bg-blue-50 p-3 rounded-lg"><p className="text-xs text-gray-500 uppercase">លេខកូដក្រុម</p><div className="flex justify-between items-center font-mono font-bold text-blue-700">{activeChat.inviteCode}<button onClick={() => copyToClipboard(activeChat.inviteCode)}><CopyIcon className="w-4 h-4"/></button></div></div>
+                        {showSettingsModal && (<div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><div className="bg-white p-4 rounded-2xl w-full max-w-sm shadow-xl modal-content h-[80vh] flex flex-col"><div className="flex justify-between items-center mb-4 border-b pb-2"><h3 className="font-bold text-lg">ការកំណត់ក្រុម</h3><button onClick={() => setShowSettingsModal(false)}><XIcon className="w-6 h-6 text-gray-500"/></button></div>
+                        
+                        {/* Group Profile Edit Section */}
+                        <div className="flex flex-col items-center mb-4">
+                            <div className="relative group cursor-pointer mb-2" onClick={() => isOwner && groupProfileInputRef.current.click()}>
+                                <div className="w-20 h-20 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center border-2 border-indigo-200">
+                                    {allGroupsData[activeChat.id]?.photoUrl ? 
+                                        <img src={allGroupsData[activeChat.id].photoUrl} className="w-full h-full object-cover"/> : 
+                                        <UsersIcon className="w-8 h-8 text-indigo-500"/>
+                                    }
+                                </div>
+                                {isOwner && (
+                                    <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                        <Edit2Icon className="w-6 h-6 text-white"/>
+                                    </div>
+                                )}
+                                {isUploadingGroupProfile && <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center"><Loader2Icon className="w-6 h-6 text-white animate-spin"/></div>}
+                            </div>
+                            <input type="file" ref={groupProfileInputRef} className="hidden" accept="image/*" onChange={handleUpdateGroupProfile}/>
+                            
+                            {isOwner ? (
+                                isEditingGroupName ? (
+                                    <div className="flex gap-2 w-full max-w-[200px]">
+                                        <input className="border rounded px-2 py-1 text-sm w-full" value={editedGroupName} onChange={e => setEditedGroupName(e.target.value)} />
+                                        <button onClick={handleUpdateGroupName} className="text-green-600"><CheckIcon className="w-5 h-5"/></button>
+                                        <button onClick={() => setIsEditingGroupName(false)} className="text-red-500"><XIcon className="w-5 h-5"/></button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="font-bold text-xl">{displayChatName}</h3>
+                                        <button onClick={() => { setIsEditingGroupName(true); setEditedGroupName(displayChatName); }} className="text-gray-400 hover:text-blue-500"><Edit2Icon className="w-4 h-4"/></button>
+                                    </div>
+                                )
+                            ) : (
+                                <h3 className="font-bold text-xl">{displayChatName}</h3>
+                            )}
+                        </div>
+
+                        <div className="mb-4 bg-blue-50 p-3 rounded-lg flex-shrink-0"><p className="text-xs text-gray-500 uppercase">លេខកូដក្រុម</p><div className="flex justify-between items-center font-mono font-bold text-blue-700">{activeChat.inviteCode}<button onClick={() => copyToClipboard(activeChat.inviteCode)}><CopyIcon className="w-4 h-4"/></button></div></div>
                         
                         {isOwner && (
-                            <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
+                            <div className="mb-4 p-3 bg-gray-50 rounded-lg border flex-shrink-0">
                                 <p className="text-sm font-bold mb-2 text-gray-700">ការកំណត់សិទ្ធិ (Owner Only)</p>
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-sm">អនុញ្ញាតឱ្យមើលសមាជិក</span>
@@ -792,54 +809,65 @@
                         )}
 
                         {(isOwner || currentGroupSettings?.addMembers) && (
-                            <div className="mb-4"><p className="text-sm font-bold mb-2">បន្ថែមសមាជិក</p><div className="flex gap-2"><input type="text" placeholder="@username..." className="flex-1 px-3 py-2 border rounded-lg" value={addMemberQuery} onChange={(e)=>setAddMemberQuery(e.target.value)}/><button onClick={handleAddMember} className="bg-blue-600 text-white px-3 rounded-lg text-sm">បន្ថែម</button></div></div>
+                            <div className="mb-4 flex-shrink-0"><p className="text-sm font-bold mb-2">បន្ថែមសមាជិក</p><div className="flex gap-2"><input type="text" placeholder="@username..." className="flex-1 px-3 py-2 border rounded-lg" value={addMemberQuery} onChange={(e)=>setAddMemberQuery(e.target.value)}/><button onClick={handleAddMember} className="bg-blue-600 text-white px-3 rounded-lg text-sm">បន្ថែម</button></div></div>
                         )}
                         
-                        <div className="flex-1 overflow-y-auto mb-4">
+                        <div className="flex-1 overflow-y-auto mb-4 min-h-0">
                             <p className="text-sm font-bold mb-2">សមាជិក ({groupMembers.length})</p>
-                            {(isOwner || currentGroupSettings?.viewMembers) ? (
-                                <div className="space-y-2 mb-4">
-                                    {groupMembers.map(m => (
-                                        <div key={m.uid} onClick={() => handleMemberClick(m)} className="flex justify-between items-center bg-gray-50 p-2 rounded cursor-pointer hover:bg-gray-100">
-                                            <span className="text-sm flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 relative">
-                                                    {m.photoUrl ? <img src={m.photoUrl} className="w-full h-full object-cover"/> : <UserIcon className="w-full h-full p-1"/>}
-                                                    {m.status === 'online' && <div className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-green-500 border border-white"></div>}
-                                                </div>
-                                                {m.username} 
-                                                <span className="text-xs text-gray-400">{m.tag}</span>
-                                                {m.uid !== currentUser.uid && <span className="text-[10px] bg-blue-100 text-blue-600 px-1 rounded">Chat</span>}
-                                            </span>
-                                            {isOwner && m.uid !== currentUser.uid && (<button onClick={(e) => { e.stopPropagation(); handleRemoveMember(m.uid); }} className="text-red-500 bg-red-100 p-1 rounded"><UserMinusIcon className="w-4 h-4"/></button>)}
-                                        </div>
-                                    ))}
-                                </div>
+                            {isSettingsLoading ? (
+                                <div className="flex justify-center py-4"><Loader2Icon className="w-6 h-6 animate-spin text-blue-500"/></div>
                             ) : (
-                                <p className="text-xs text-gray-500 italic">បញ្ជីសមាជិកត្រូវបានលាក់ដោយម្ចាស់ក្រុម។</p>
+                                (isOwner || currentGroupSettings?.viewMembers) ? (
+                                    <div className="space-y-2 mb-4">
+                                        {groupMembers.map(m => (
+                                            <div key={m.uid} onClick={() => handleMemberClick(m)} className="flex justify-between items-center bg-gray-50 p-2 rounded cursor-pointer hover:bg-gray-100">
+                                                <span className="text-sm flex items-center gap-2">
+                                                    <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 relative">
+                                                        {m.photoUrl ? <img src={m.photoUrl} className="w-full h-full object-cover"/> : <UserIcon className="w-full h-full p-1"/>}
+                                                        {m.status === 'online' && <div className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-green-500 border border-white"></div>}
+                                                    </div>
+                                                    {m.username} 
+                                                    <span className="text-xs text-gray-400">{m.tag}</span>
+                                                    {m.uid !== currentUser.uid && <span className="text-[10px] bg-blue-100 text-blue-600 px-1 rounded">Chat</span>}
+                                                </span>
+                                                {isOwner && m.uid !== currentUser.uid && (<button onClick={(e) => { e.stopPropagation(); handleRemoveMember(m.uid); }} className="text-red-500 bg-red-100 p-1 rounded"><UserMinusIcon className="w-4 h-4"/></button>)}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-gray-500 italic">បញ្ជីសមាជិកត្រូវបានលាក់ដោយម្ចាស់ក្រុម។</p>
+                                )
                             )}
                             
                             {isOwner && groupBlocked.length > 0 && (<div><p className="text-sm font-bold mb-2 text-red-600">អ្នកដែលត្រូវបាន Block</p><div className="space-y-2">{groupBlocked.map(b => (<div key={b.uid} className="flex justify-between items-center bg-red-50 p-2 rounded border border-red-100"><span className="text-sm text-gray-600">{b.username}</span><button onClick={() => handleUnblockMember(b.uid)} className="text-green-600 text-xs font-bold">Unblock</button></div>))}</div></div>)}
                         </div>
-                        {isOwner && (<div className="pt-2 border-t"><button onClick={() => handleDeleteChatAction(activeChat, {stopPropagation:()=>{}})} className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition flex items-center justify-center gap-2"><TrashIcon className="w-5 h-5" /> លុបក្រុមចោល</button></div>)}</div></div>)}
+                        {isOwner && (<div className="pt-2 border-t flex-shrink-0"><button onClick={() => handleDeleteChatAction(activeChat, {stopPropagation:()=>{}})} className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition flex items-center justify-center gap-2"><TrashIcon className="w-5 h-5" /> លុបក្រុមចោល</button></div>)}</div></div>)}
                         
                         <div className="bg-white p-3 shadow-sm flex items-center gap-3 z-20">
                             <button onClick={() => { setView('home'); setMessages([]); setActiveChat(null); }} className="text-gray-600 hover:bg-gray-100 p-2 rounded-full"><ArrowLeftIcon className="w-6 h-6" /></button>
-                            <div className="flex-1 flex items-center gap-3 overflow-hidden">
-                                <div className={`w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden ${activeChat.type === 'group' ? 'bg-indigo-500' : 'bg-gray-400'}`}>{activeChat.type === 'group' ? <UsersIcon className="w-5 h-5" /> : (activeChat.photoUrl ? <img src={activeChat.photoUrl} className="w-full h-full object-cover"/> : activeChat.name[0])}</div>
+                            
+                            {/* Clickable Header for Settings */}
+                            <div className="flex-1 flex items-center gap-3 overflow-hidden cursor-pointer" onClick={openGroupSettings}>
+                                <div className={`w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden ${activeChat.type === 'group' ? 'bg-indigo-500' : 'bg-gray-400'}`}>
+                                    {activeChat.type === 'group' ? 
+                                        (displayChatPhoto ? <img src={displayChatPhoto} className="w-full h-full object-cover"/> : <UsersIcon className="w-5 h-5" />) 
+                                        : (activeChat.photoUrl ? <img src={activeChat.photoUrl} className="w-full h-full object-cover"/> : activeChat.name[0])}
+                                </div>
                                 <div className="overflow-hidden">
-                                    <h2 className="font-bold text-gray-800 truncate">{activeChat.name}</h2>
+                                    <h2 className="font-bold text-gray-800 truncate">{displayChatName}</h2>
                                     <div className="flex items-center gap-1">
                                         {activeChat.type === 'direct' && partnerStatus === 'online' && <div className="w-2 h-2 rounded-full bg-green-500"></div>}
                                         <p className="text-xs text-gray-500 truncate">
-                                            {activeChat.type === 'group' ? 'Group Chat' : (partnerStatus === 'online' ? 'Online' : 'Offline')}
+                                            {activeChat.type === 'group' ? 'Group Info' : (partnerStatus === 'online' ? 'Online' : 'Offline')}
                                         </p>
                                     </div>
                                 </div>
                             </div>
+                            
                             <div className="flex gap-1">
                                 <button onClick={() => initiateCall('audio')} className="p-2 text-blue-500 hover:bg-blue-50 rounded-full"><PhoneIcon className="w-5 h-5" /></button>
                                 <button onClick={() => initiateCall('video')} className="p-2 text-blue-500 hover:bg-blue-50 rounded-full"><VideoCallIcon className="w-5 h-5" /></button>
-                                {activeChat.type === 'group' && <button onClick={fetchGroupSettings} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"><SettingsIcon className="w-6 h-6" /></button>}
+                                {activeChat.type === 'group' && <button onClick={openGroupSettings} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"><SettingsIcon className="w-6 h-6" /></button>}
                             </div>
                         </div>
                         

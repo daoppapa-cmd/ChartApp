@@ -35,6 +35,15 @@
         
         /* Input transition */
         .input-area-transition { transition: all 0.3s ease; }
+        
+        /* Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #68D391;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #68D391;
+        }
     </style>
 </head>
 <body class="bg-gray-100 h-screen overflow-hidden">
@@ -80,6 +89,7 @@
         const MicIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>);
         const StopCircleIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><rect x="9" y="9" width="6" height="6"></rect></svg>);
         const PlusCircleIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>);
+        const MessageIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>);
 
         function LoginView({ onRegister, onLogin }) {
             const [mode, setMode] = useState('register'); 
@@ -279,12 +289,10 @@
                 }
             };
 
-            // --- Handlers for Media with Telegram Style Upload ---
             const handleFileUpload = async (e, type) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 
-                // 1. Create Preview & Show "Uploading" State Locally
                 const previewUrl = URL.createObjectURL(file);
                 const tempId = 'temp_' + Date.now();
                 
@@ -301,10 +309,10 @@
                 try {
                     const url = await uploadToCloudinary(file, type);
                     await sendMessageWithMedia(url, type);
-                    setUploadingItem(null); // Upload finished
+                    setUploadingItem(null); 
                 } catch(e) { 
                     console.error(e); 
-                    setUploadingItem(null); // Remove uploading state on fail
+                    setUploadingItem(null); 
                 } finally { 
                     e.target.value = null; 
                 }
@@ -319,7 +327,6 @@
                     recorder.onstop = async () => {
                         const blob = new Blob(chunks, { type: 'audio/ogg; codecs=opus' });
                         
-                        // Preview for Audio
                         const previewUrl = URL.createObjectURL(blob);
                         setUploadingItem({
                             id: 'temp_audio_' + Date.now(),
@@ -487,6 +494,7 @@
                     inviteCode: inviteCode,
                     createdAt: timestamp,
                     members: { [currentUser.uid]: true },
+                    settings: { viewMembers: true, addMembers: true },
                     lastMsg: "Group Created",
                     timestamp: timestamp
                 };
@@ -589,6 +597,17 @@
                 document.body.removeChild(textArea);
             };
 
+            const toggleGroupSetting = async (key) => {
+                const currentSettings = allGroupsData[activeChat.id]?.settings || { viewMembers: true, addMembers: true };
+                try {
+                    await window.fb.update(window.fb.ref(dbRef.current, `groups/${activeChat.id}/settings`), {
+                        [key]: !currentSettings[key]
+                    });
+                } catch (e) {
+                    console.error("Error toggling setting:", e);
+                }
+            };
+
             // Group Settings Helpers
             const fetchGroupSettings = async () => {
                 if (!activeChat || activeChat.type !== 'group') return;
@@ -638,6 +657,12 @@
             const handleUnblockMember = async (memberId) => {
                 const db = dbRef.current;
                 try { await window.fb.remove(window.fb.ref(db, `groups/${activeChat.id}/blocked/${memberId}`)); fetchGroupSettings(); } catch (e) {}
+            };
+
+            const handleMemberClick = (member) => {
+                if (member.uid === currentUser.uid) return;
+                startChat({ uid: member.uid, username: member.username, tag: member.tag });
+                setShowSettingsModal(false);
             };
 
             // --- Chat Messages Fetch ---
@@ -695,15 +720,66 @@
 
             if (view === 'chat') {
                 const isOwner = activeChat.type === 'group' && activeChat.owner === currentUser.uid;
+                const currentGroupSettings = activeChat.type === 'group' 
+                    ? (allGroupsData[activeChat.id]?.settings || { viewMembers: true, addMembers: true }) 
+                    : null;
+
                 return (
                     <div className="flex flex-col h-full bg-gray-100 font-battambang max-w-md mx-auto shadow-2xl relative">
                         {/* Hidden File Inputs */}
                         <input type="file" accept="image/*" className="hidden" ref={imageInputRef} onChange={(e) => handleFileUpload(e, 'image')} />
                         <input type="file" accept="video/*" className="hidden" ref={videoInputRef} onChange={(e) => handleFileUpload(e, 'video')} />
 
-                        {showSettingsModal && (<div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><div className="bg-white p-4 rounded-2xl w-full max-w-sm shadow-xl modal-content h-[80vh] flex flex-col"><div className="flex justify-between items-center mb-4 border-b pb-2"><h3 className="font-bold text-lg">ការកំណត់ក្រុម: {activeChat.name}</h3><button onClick={() => setShowSettingsModal(false)}><XIcon className="w-6 h-6 text-gray-500"/></button></div><div className="mb-4 bg-blue-50 p-3 rounded-lg"><p className="text-xs text-gray-500 uppercase">លេខកូដក្រុម</p><div className="flex justify-between items-center font-mono font-bold text-blue-700">{activeChat.inviteCode}<button onClick={() => copyToClipboard(activeChat.inviteCode)}><CopyIcon className="w-4 h-4"/></button></div></div><div className="mb-4"><p className="text-sm font-bold mb-2">បន្ថែមសមាជិក</p><div className="flex gap-2"><input type="text" placeholder="@username..." className="flex-1 px-3 py-2 border rounded-lg" value={addMemberQuery} onChange={(e)=>setAddMemberQuery(e.target.value)}/><button onClick={handleAddMember} className="bg-blue-600 text-white px-3 rounded-lg text-sm">បន្ថែម</button></div></div><div className="flex-1 overflow-y-auto mb-4"><p className="text-sm font-bold mb-2">សមាជិក ({groupMembers.length})</p><div className="space-y-2 mb-4">{groupMembers.map(m => (<div key={m.uid} className="flex justify-between items-center bg-gray-50 p-2 rounded"><span className="text-sm">{m.username} <span className="text-xs text-gray-400">{m.tag}</span></span>{m.uid !== currentUser.uid && (<button onClick={() => handleRemoveMember(m.uid)} className="text-red-500 bg-red-100 p-1 rounded"><UserMinusIcon className="w-4 h-4"/></button>)}</div>))}</div>{groupBlocked.length > 0 && (<div><p className="text-sm font-bold mb-2 text-red-600">អ្នកដែលត្រូវបាន Block</p><div className="space-y-2">{groupBlocked.map(b => (<div key={b.uid} className="flex justify-between items-center bg-red-50 p-2 rounded border border-red-100"><span className="text-sm text-gray-600">{b.username}</span><button onClick={() => handleUnblockMember(b.uid)} className="text-green-600 text-xs font-bold">Unblock</button></div>))}</div></div>)}</div>{isOwner && (<div className="pt-2 border-t"><button onClick={() => handleDeleteChatAction(activeChat, {stopPropagation:()=>{}})} className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition flex items-center justify-center gap-2"><TrashIcon className="w-5 h-5" /> លុបក្រុមចោល</button></div>)}</div></div>)}
+                        {showSettingsModal && (<div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><div className="bg-white p-4 rounded-2xl w-full max-w-sm shadow-xl modal-content h-[80vh] flex flex-col"><div className="flex justify-between items-center mb-4 border-b pb-2"><h3 className="font-bold text-lg">ការកំណត់ក្រុម: {activeChat.name}</h3><button onClick={() => setShowSettingsModal(false)}><XIcon className="w-6 h-6 text-gray-500"/></button></div><div className="mb-4 bg-blue-50 p-3 rounded-lg"><p className="text-xs text-gray-500 uppercase">លេខកូដក្រុម</p><div className="flex justify-between items-center font-mono font-bold text-blue-700">{activeChat.inviteCode}<button onClick={() => copyToClipboard(activeChat.inviteCode)}><CopyIcon className="w-4 h-4"/></button></div></div>
                         
-                        <div className="bg-white p-3 shadow-sm flex items-center gap-3 z-20"><button onClick={() => { setView('home'); setMessages([]); setActiveChat(null); setShowSettingsModal(false); }} className="text-gray-600 hover:bg-gray-100 p-2 rounded-full"><ArrowLeftIcon className="w-6 h-6" /></button><div className={`w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold text-lg ${activeChat.type === 'group' ? 'bg-indigo-500' : 'bg-gradient-to-br from-green-400 to-blue-500'}`}>{activeChat.type === 'group' ? <UsersIcon className="w-5 h-5" /> : activeChat.name[0]}</div><div className="flex-1 overflow-hidden"><h2 className="font-bold text-gray-800 truncate">{activeChat.name}</h2><p className="text-xs text-gray-500 truncate">{activeChat.type === 'group' ? 'Group Chat' : activeChat.tag}</p></div>{isOwner && <button onClick={fetchGroupSettings} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"><SettingsIcon className="w-6 h-6" /></button>}</div>
+                        {isOwner && (
+                            <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
+                                <p className="text-sm font-bold mb-2 text-gray-700">ការកំណត់សិទ្ធិ (Owner Only)</p>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm">អនុញ្ញាតឱ្យមើលសមាជិក</span>
+                                    <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" name="toggle" id="viewMembersToggle" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked={currentGroupSettings.viewMembers} onChange={() => toggleGroupSetting('viewMembers')}/>
+                                        <label htmlFor="viewMembersToggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${currentGroupSettings.viewMembers ? 'bg-green-400' : 'bg-gray-300'}`}></label>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm">អនុញ្ញាតឱ្យបន្ថែមសមាជិក</span>
+                                    <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" name="toggle" id="addMembersToggle" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked={currentGroupSettings.addMembers} onChange={() => toggleGroupSetting('addMembers')}/>
+                                        <label htmlFor="addMembersToggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${currentGroupSettings.addMembers ? 'bg-green-400' : 'bg-gray-300'}`}></label>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {(isOwner || currentGroupSettings?.addMembers) && (
+                            <div className="mb-4"><p className="text-sm font-bold mb-2">បន្ថែមសមាជិក</p><div className="flex gap-2"><input type="text" placeholder="@username..." className="flex-1 px-3 py-2 border rounded-lg" value={addMemberQuery} onChange={(e)=>setAddMemberQuery(e.target.value)}/><button onClick={handleAddMember} className="bg-blue-600 text-white px-3 rounded-lg text-sm">បន្ថែម</button></div></div>
+                        )}
+                        
+                        <div className="flex-1 overflow-y-auto mb-4">
+                            <p className="text-sm font-bold mb-2">សមាជិក ({groupMembers.length})</p>
+                            {(isOwner || currentGroupSettings?.viewMembers) ? (
+                                <div className="space-y-2 mb-4">
+                                    {groupMembers.map(m => (
+                                        <div key={m.uid} onClick={() => handleMemberClick(m)} className="flex justify-between items-center bg-gray-50 p-2 rounded cursor-pointer hover:bg-gray-100">
+                                            <span className="text-sm flex items-center gap-2">
+                                                {m.username} 
+                                                <span className="text-xs text-gray-400">{m.tag}</span>
+                                                {m.uid !== currentUser.uid && <span className="text-[10px] bg-blue-100 text-blue-600 px-1 rounded">Chat</span>}
+                                            </span>
+                                            {isOwner && m.uid !== currentUser.uid && (<button onClick={(e) => { e.stopPropagation(); handleRemoveMember(m.uid); }} className="text-red-500 bg-red-100 p-1 rounded"><UserMinusIcon className="w-4 h-4"/></button>)}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-gray-500 italic">បញ្ជីសមាជិកត្រូវបានលាក់ដោយម្ចាស់ក្រុម។</p>
+                            )}
+                            
+                            {isOwner && groupBlocked.length > 0 && (<div><p className="text-sm font-bold mb-2 text-red-600">អ្នកដែលត្រូវបាន Block</p><div className="space-y-2">{groupBlocked.map(b => (<div key={b.uid} className="flex justify-between items-center bg-red-50 p-2 rounded border border-red-100"><span className="text-sm text-gray-600">{b.username}</span><button onClick={() => handleUnblockMember(b.uid)} className="text-green-600 text-xs font-bold">Unblock</button></div>))}</div></div>)}
+                        </div>
+                        {isOwner && (<div className="pt-2 border-t"><button onClick={() => handleDeleteChatAction(activeChat, {stopPropagation:()=>{}})} className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition flex items-center justify-center gap-2"><TrashIcon className="w-5 h-5" /> លុបក្រុមចោល</button></div>)}</div></div>)}
+                        
+                        <div className="bg-white p-3 shadow-sm flex items-center gap-3 z-20"><button onClick={() => { setView('home'); setMessages([]); setActiveChat(null); setShowSettingsModal(false); }} className="text-gray-600 hover:bg-gray-100 p-2 rounded-full"><ArrowLeftIcon className="w-6 h-6" /></button><div className={`w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold text-lg ${activeChat.type === 'group' ? 'bg-indigo-500' : 'bg-gradient-to-br from-green-400 to-blue-500'}`}>{activeChat.type === 'group' ? <UsersIcon className="w-5 h-5" /> : activeChat.name[0]}</div><div className="flex-1 overflow-hidden"><h2 className="font-bold text-gray-800 truncate">{activeChat.name}</h2><p className="text-xs text-gray-500 truncate">{activeChat.type === 'group' ? 'Group Chat' : activeChat.tag}</p></div><button onClick={fetchGroupSettings} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"><SettingsIcon className="w-6 h-6" /></button></div>
                         
                         <div className="flex-1 overflow-y-auto p-2 space-y-4 bg-gray-100" onClick={() => setMobileDeleteId(null)}>
                             {messages.map((msg) => { 
